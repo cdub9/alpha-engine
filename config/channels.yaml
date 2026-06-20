@@ -1,0 +1,54 @@
+# Channel definitions. Each channel is an independent strategy with its own
+# constraints, instruments, and review loop.
+
+channels:
+  steady_alpha:
+    enabled: true
+    description: "Targets SPY + 3-5% on a risk-adjusted basis"
+    benchmark: SPY
+    target_excess_return: 0.04   # 4% over benchmark, annualized
+    target_sharpe: 1.0
+
+    # Position sizing
+    max_position_weight: 0.05    # 5% per name
+    max_sector_weight: 0.20      # 20% per sector
+    target_positions: 25         # diversified
+
+    # Risk limits
+    max_drawdown: 0.15           # 15% drawdown circuit breaker
+    target_volatility: 0.12      # 12% annualized vol target
+    stop_loss: 0.06              # 6% per position
+
+    # Instruments allowed
+    instruments:
+      - equity
+      - etf
+      - bond_etf
+    options_enabled: false       # built, dormant
+    leverage_enabled: false
+
+  aggressive_growth:
+    enabled: true
+    description: "Targets 2x SPY with concentrated tech/AI exposure"
+    benchmark: SPY
+    target_excess_return: 0.10   # match SPY annual return on top of SPY
+    target_sharpe: 0.8           # accepting more vol for more return
+
+    # Position sizing
+    max_position_weight: 0.15    # 15% per name (concentrated)
+    max_sector_weight: 0.40      # 40% per sector (tech/AI OK)
+    target_positions: 12         # concentrated
+
+    # Risk limits
+    max_drawdown: 0.30           # tolerates 30% drawdown
+    target_volatility: 0.25      # 25% annualized vol target
+    stop_loss: 0.12              # 12% per position
+
+    # Instruments allowed
+    instruments:
+      - equity
+      - etf
+      - leveraged_etf
+    options_enabled: false       # built, dormant
+    leverage_enabled: true       # leveraged ETFs (TQQQ, SOXL) allowed
+    max_leveraged_etf_weight: 0.10

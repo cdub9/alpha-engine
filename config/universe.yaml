@@ -1,0 +1,202 @@
+# Tradable universe. Start narrow, expand as the system proves itself.
+
+universes:
+  # Broad market ETFs - both channels can hold these
+  core_etfs:
+    - symbol: SPY
+      name: SPDR S&P 500
+      type: etf
+      sector: broad
+    - symbol: QQQ
+      name: Invesco QQQ (Nasdaq 100)
+      type: etf
+      sector: broad
+    - symbol: IWM
+      name: iShares Russell 2000
+      type: etf
+      sector: broad
+    - symbol: DIA
+      name: SPDR Dow Jones
+      type: etf
+      sector: broad
+
+  # Cheap substitutes for the core ETFs above. Prefer these where otherwise
+  # equivalent — lower expense ratio = same exposure, slightly better TR.
+  cheap_core_substitutes:
+    - { symbol: QQQM, name: Invesco Nasdaq 100 (cheaper),   type: etf, sector: broad }
+    - { symbol: VOO,  name: Vanguard S&P 500 (cheaper),      type: etf, sector: broad }
+
+  # Sector SPDR ETFs - for sector rotation
+  sector_etfs:
+    - { symbol: XLK,  name: Technology,             type: etf, sector: technology }
+    - { symbol: XLF,  name: Financials,             type: etf, sector: financials }
+    - { symbol: XLE,  name: Energy,                 type: etf, sector: energy }
+    - { symbol: XLV,  name: Health Care,            type: etf, sector: healthcare }
+    - { symbol: XLI,  name: Industrials,            type: etf, sector: industrials }
+    - { symbol: XLY,  name: Consumer Discretionary, type: etf, sector: consumer_disc }
+    - { symbol: XLP,  name: Consumer Staples,       type: etf, sector: consumer_staples }
+    - { symbol: XLB,  name: Materials,              type: etf, sector: materials }
+    - { symbol: XLU,  name: Utilities,              type: etf, sector: utilities }
+    - { symbol: XLRE, name: Real Estate,            type: etf, sector: real_estate }
+    - { symbol: XLC,  name: Communication Services, type: etf, sector: communications }
+
+  # Bond ETFs
+  bond_etfs:
+    - { symbol: AGG, name: Aggregate Bond,          type: bond_etf, sector: bonds }
+    - { symbol: TLT, name: 20+ Year Treasury,       type: bond_etf, sector: bonds }
+    - { symbol: SHY, name: 1-3 Year Treasury,       type: bond_etf, sector: bonds }
+    - { symbol: HYG, name: High Yield Corporate,    type: bond_etf, sector: bonds }
+    - { symbol: LQD, name: Investment Grade Corp,   type: bond_etf, sector: bonds }
+    - { symbol: TIP, name: TIPS,                    type: bond_etf, sector: bonds }
+
+  # Magnificent 7 + AI infrastructure - Channel B focus
+  ai_growth:
+    - { symbol: NVDA, name: NVIDIA,        type: equity, sector: technology }
+    - { symbol: MSFT, name: Microsoft,     type: equity, sector: technology }
+    - { symbol: GOOGL, name: Alphabet,     type: equity, sector: communications }
+    - { symbol: META, name: Meta Platforms, type: equity, sector: communications }
+    - { symbol: AMZN, name: Amazon,        type: equity, sector: consumer_disc }
+    - { symbol: AAPL, name: Apple,         type: equity, sector: technology }
+    - { symbol: TSLA, name: Tesla,         type: equity, sector: consumer_disc }
+    - { symbol: AMD,  name: AMD,           type: equity, sector: technology }
+    - { symbol: AVGO, name: Broadcom,      type: equity, sector: technology }
+    - { symbol: SMCI, name: Super Micro,   type: equity, sector: technology }
+
+  # Heavy AI / tech sector plays — pure-play picks the model can use to
+  # express specific theses (memory wall, foundry concentration, semi
+  # equipment cycle, custom AI silicon, AI networking, AI power demand,
+  # datacenter REITs). All are liquid; non-S&P names (TSM, ASML, ARM)
+  # included as ADRs / recent listings.
+  ai_compute:
+    - { symbol: MU,   name: Micron Technology (DRAM/HBM),       type: equity, sector: technology }
+    - { symbol: WDC,  name: Western Digital (NAND/storage),     type: equity, sector: technology }
+    - { symbol: TSM,  name: Taiwan Semiconductor (foundry ADR), type: equity, sector: technology }
+    - { symbol: ASML, name: ASML (EUV lithography ADR),         type: equity, sector: technology }
+    - { symbol: LRCX, name: Lam Research (etch/deposition),     type: equity, sector: technology }
+    - { symbol: AMAT, name: Applied Materials (semi cap eq),    type: equity, sector: technology }
+    - { symbol: MRVL, name: Marvell (custom AI ASICs/networking), type: equity, sector: technology }
+    - { symbol: ARM,  name: Arm Holdings (instruction-set IP),  type: equity, sector: technology }
+    - { symbol: ANET, name: Arista Networks (AI datacenter),    type: equity, sector: technology }
+    - { symbol: VRT,  name: Vertiv (liquid cooling/power),      type: equity, sector: industrials }
+    - { symbol: CEG,  name: Constellation Energy (AI nuclear),  type: equity, sector: utilities }
+    - { symbol: EQIX, name: Equinix (datacenter REIT),          type: equity, sector: real_estate }
+
+  # Sub-sector / thematic ETFs - lets the model express granular tilts
+  # (semis, cyber, AI, biotech, infrastructure, defense, China internet).
+  # Channel B will lean on these for thematic concentration; Channel A may
+  # use them for diversification.
+  thematic_etfs:
+    - { symbol: SMH,  name: VanEck Semiconductors,           type: etf, sector: technology }
+    - { symbol: SOXX, name: iShares Semiconductors,          type: etf, sector: technology }
+    - { symbol: CIBR, name: First Trust Cybersecurity,       type: etf, sector: technology }
+    - { symbol: SKYY, name: First Trust Cloud Computing,     type: etf, sector: technology }
+    - { symbol: BOTZ, name: Global X Robotics/AI,            type: etf, sector: technology }
+    - { symbol: IBB,  name: iShares Biotech (cap-weighted),  type: etf, sector: healthcare }
+    - { symbol: XBI,  name: SPDR Biotech (equal-weight),     type: etf, sector: healthcare }
+    - { symbol: PAVE, name: Global X US Infrastructure,      type: etf, sector: industrials }
+    - { symbol: ITA,  name: iShares US Aerospace & Defense,  type: etf, sector: industrials }
+    - { symbol: KWEB, name: KraneShares China Internet,      type: etf, sector: communications }
+
+  # Mid/small cap + rate-sensitive sub-sectors — fills the gap below mega-caps.
+  mid_small_etfs:
+    - { symbol: IJH, name: iShares S&P Mid-Cap 400,          type: etf, sector: broad }
+    - { symbol: IJR, name: iShares S&P Small-Cap 600,        type: etf, sector: broad }
+    - { symbol: KRE, name: SPDR Regional Banking,            type: etf, sector: financials }
+    - { symbol: XHB, name: SPDR Homebuilders,                type: etf, sector: consumer_disc }
+
+  # International — adds geographic diversification beyond US-only.
+  international_etfs:
+    - { symbol: EFA,  name: iShares MSCI EAFE (Developed),   type: etf, sector: international }
+    - { symbol: VWO,  name: Vanguard Emerging Markets,       type: etf, sector: international }
+    - { symbol: INDA, name: iShares MSCI India,              type: etf, sector: international }
+    - { symbol: EWJ,  name: iShares MSCI Japan,              type: etf, sector: international }
+
+  # Commodity ETFs - both channels can hold, esp. as diversifiers
+  # (The LLM was already referencing GLD via cross-asset context but couldn't
+  # trade it — adding it here closes that gap.)
+  commodity_etfs:
+    - { symbol: GLD, name: SPDR Gold,                type: etf, sector: commodities }
+    - { symbol: SLV, name: iShares Silver,           type: etf, sector: commodities }
+    - { symbol: USO, name: US Oil Fund,              type: etf, sector: commodities }
+    - { symbol: DBC, name: Invesco DB Commodity,     type: etf, sector: commodities }
+
+  # Phase B individual large-caps — fills sector gaps beyond the Mag 7.
+  # All are liquid (>$50B mkt cap typically, daily volume >1M), with
+  # 5y+ trading history. Pick covers under-represented sectors so the
+  # LLM can express granular sector tilts without resorting to ETFs.
+
+  tech_extended:
+    - { symbol: ORCL,  name: Oracle,            type: equity, sector: technology }
+    - { symbol: CRM,   name: Salesforce,        type: equity, sector: technology }
+    - { symbol: ADBE,  name: Adobe,             type: equity, sector: technology }
+    - { symbol: NOW,   name: ServiceNow,        type: equity, sector: technology }
+    - { symbol: INTU,  name: Intuit,            type: equity, sector: technology }
+    - { symbol: NFLX,  name: Netflix,           type: equity, sector: communications }
+    - { symbol: UBER,  name: Uber,              type: equity, sector: technology }
+    - { symbol: PLTR,  name: Palantir,          type: equity, sector: technology }
+    - { symbol: CRWD,  name: CrowdStrike,       type: equity, sector: technology }
+    - { symbol: PANW,  name: Palo Alto Networks, type: equity, sector: technology }
+
+  financials_equity:
+    - { symbol: JPM,   name: JPMorgan Chase,    type: equity, sector: financials }
+    - { symbol: BAC,   name: Bank of America,   type: equity, sector: financials }
+    - { symbol: GS,    name: Goldman Sachs,     type: equity, sector: financials }
+    - { symbol: V,     name: Visa,              type: equity, sector: financials }
+    - { symbol: MA,    name: Mastercard,        type: equity, sector: financials }
+    - { symbol: BLK,   name: BlackRock,         type: equity, sector: financials }
+    - { symbol: COIN,  name: Coinbase,          type: equity, sector: financials }
+
+  healthcare_equity:
+    - { symbol: LLY,   name: Eli Lilly,         type: equity, sector: healthcare }
+    - { symbol: UNH,   name: UnitedHealth,      type: equity, sector: healthcare }
+    - { symbol: JNJ,   name: Johnson & Johnson, type: equity, sector: healthcare }
+    - { symbol: ABBV,  name: AbbVie,            type: equity, sector: healthcare }
+    - { symbol: MRK,   name: Merck,             type: equity, sector: healthcare }
+
+  consumer_disc_equity:
+    - { symbol: HD,    name: Home Depot,        type: equity, sector: consumer_disc }
+    - { symbol: LOW,   name: Lowe's,            type: equity, sector: consumer_disc }
+    - { symbol: MCD,   name: McDonald's,        type: equity, sector: consumer_disc }
+    - { symbol: NKE,   name: Nike,              type: equity, sector: consumer_disc }
+    - { symbol: BKNG,  name: Booking Holdings,  type: equity, sector: consumer_disc }
+
+  consumer_staples_equity:
+    - { symbol: WMT,   name: Walmart,           type: equity, sector: consumer_staples }
+    - { symbol: COST,  name: Costco,            type: equity, sector: consumer_staples }
+    - { symbol: PG,    name: Procter & Gamble,  type: equity, sector: consumer_staples }
+    - { symbol: KO,    name: Coca-Cola,         type: equity, sector: consumer_staples }
+
+  energy_equity:
+    - { symbol: XOM,   name: ExxonMobil,        type: equity, sector: energy }
+    - { symbol: CVX,   name: Chevron,           type: equity, sector: energy }
+    - { symbol: COP,   name: ConocoPhillips,    type: equity, sector: energy }
+    - { symbol: OXY,   name: Occidental,        type: equity, sector: energy }
+
+  industrials_equity:
+    - { symbol: CAT,   name: Caterpillar,       type: equity, sector: industrials }
+    - { symbol: DE,    name: Deere,             type: equity, sector: industrials }
+    - { symbol: RTX,   name: RTX (Raytheon),    type: equity, sector: industrials }
+    - { symbol: LMT,   name: Lockheed Martin,   type: equity, sector: industrials }
+    - { symbol: BA,    name: Boeing,            type: equity, sector: industrials }
+
+  comm_equity:
+    - { symbol: TMUS,  name: T-Mobile,          type: equity, sector: communications }
+
+  materials_equity:
+    - { symbol: FCX,   name: Freeport-McMoRan,  type: equity, sector: materials }
+    - { symbol: NEM,   name: Newmont (gold),    type: equity, sector: materials }
+
+  reits_equity:
+    - { symbol: PLD,   name: Prologis,          type: equity, sector: real_estate }
+    - { symbol: AMT,   name: American Tower,    type: equity, sector: real_estate }
+
+  # Leveraged ETFs - Channel B only, capped
+  leveraged_etfs:
+    - { symbol: TQQQ, name: 3x Nasdaq,       type: leveraged_etf, sector: technology }
+    - { symbol: SOXL, name: 3x Semiconductors, type: leveraged_etf, sector: technology }
+    - { symbol: UPRO, name: 3x S&P 500,      type: leveraged_etf, sector: broad }
+
+# Exclusions: never trade these even if signal suggests them
+exclusions:
+  # Add tickers under sanctions, delisting risk, fraud allegations, etc.
+  symbols: []

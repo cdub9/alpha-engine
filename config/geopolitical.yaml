@@ -1,0 +1,113 @@
+# GDELT geopolitical signal queries.
+#
+# Each entry is tracked daily; the system stores volume + tone and computes
+# "vs baseline" features the LLM digest uses.
+#
+# TWO ingestion backends, same output rows:
+#   - DOC API (scripts/ingest_gdelt.py): full-text keyword search over the
+#     recent rolling window. Free, no auth, but 30-day-only and rate-limited.
+#     Uses the `query` field (GDELT DOC syntax: AND/OR/NOT uppercase, phrase
+#     quoting, parentheses; default operator OR).
+#   - BigQuery (scripts/ingest_gdelt_bq.py): scans the GKG table for full
+#     history (2015+), no rate limits, cost-gated. Uses the `bq_match` field.
+#
+# `bq_match` is an AND-list of regex alternations matched (case-insensitive)
+# against a per-article blob of GDELT's extracted entities + themes
+# (AllNames [+ V2Themes]). It is NOT full-text: it matches the named
+# entities and theme codes GDELT tagged, which is what BigQuery exposes.
+# Mirror the `query`'s AND-of-ORs structure: one list element per AND clause,
+# `|`-separated alternatives within. Lowercase. Keep alternatives to stable
+# nouns/entities where possible (theme matching is coarser than full text).
+
+signals:
+  - name: iran_conflict
+    query: 'Iran AND (attack OR strike OR missile OR sanctions OR nuclear)'
+    bq_match:
+      - 'iran'
+      - 'attack|strike|missile|sanction|nuclear|military|conflict'
+    description: Iran-related military/sanctions events; impacts oil + defense
+    sector_relevance: [energy, defense]
+
+  - name: russia_ukraine
+    query: 'Russia AND Ukraine AND (war OR offensive OR strike OR ceasefire)'
+    bq_match:
+      - 'russia'
+      - 'ukraine'
+      - 'war|offensive|strike|ceasefire|invasion|conflict'
+    description: Ongoing conflict intensity; impacts energy, defense, EU equities
+    sector_relevance: [energy, defense, europe]
+
+  - name: china_taiwan
+    query: 'China AND Taiwan AND (military OR invasion OR exercise OR drill)'
+    bq_match:
+      - 'china'
+      - 'taiwan'
+      - 'military|invasion|exercise|drill|incursion|conflict'
+    description: Cross-strait tensions; risk-off catalyst for semis + global equities
+    sector_relevance: [technology, semis, global]
+
+  - name: china_us_trade
+    query: '(China OR Beijing) AND (tariff OR "trade war" OR sanctions OR ban)'
+    bq_match:
+      - 'china|beijing'
+      - 'tariff|trade war|sanction|ban|export control'
+    description: US-China trade friction; impacts tech, industrials, agriculture
+    sector_relevance: [technology, industrials, consumer]
+
+  - name: oil_disruption
+    query: 'oil AND (supply OR shock OR refinery OR pipeline OR embargo OR OPEC)'
+    bq_match:
+      - 'oil|crude|petroleum'
+      - 'supply|shock|refinery|pipeline|embargo|opec|disruption'
+    description: Oil supply-side news; direct catalyst for XLE
+    sector_relevance: [energy]
+
+  - name: semis_export_controls
+    query: 'semiconductor AND (export OR sanctions OR ban OR restriction)'
+    bq_match:
+      - 'semiconductor|chip|chipmaker'
+      - 'export|sanction|ban|restriction|control'
+    description: Chip export policy; impacts NVDA, AMD, AVGO, TSM
+    sector_relevance: [technology, semis]
+
+  - name: middle_east
+    query: '(Israel OR Gaza OR Lebanon OR Hezbollah OR Houthi) AND (strike OR attack OR war)'
+    bq_match:
+      - 'israel|gaza|lebanon|hezbollah|houthi'
+      - 'strike|attack|war|conflict|militant'
+    description: Middle East conflict; impacts oil + risk-off broadly
+    sector_relevance: [energy, defense]
+
+  - name: north_korea
+    query: '(North Korea OR DPRK) AND (missile OR test OR weapon OR launch)'
+    bq_match:
+      - 'north korea|dprk|pyongyang'
+      - 'missile|test|weapon|launch|nuclear'
+    description: NK weapons tests; risk-off catalyst when active
+    sector_relevance: [defense, asia]
+
+  - name: fed_policy
+    query: 'Federal Reserve AND (rate OR hike OR cut OR pause OR pivot)'
+    bq_match:
+      - 'federal reserve|fomc'
+      - 'rate|hike|cut|pause|pivot|tighten|monetary'
+    description: Fed policy chatter; useful as confirming signal pre-FOMC
+    sector_relevance: [rates, bonds, growth]
+
+  # recession_sentiment was a single 4-clause OR-of-phrases query. GDELT's
+  # DOC API returned malformed empty-200 bodies for it (root-caused
+  # 2026-06-07), so it is split into two narrower signals. Each is its own
+  # signal-name in the DB; the digest reads both. (See FOLLOWUPS.)
+  - name: recession_mentions
+    query: 'recession OR "economic downturn"'
+    bq_match:
+      - 'recession|economic downturn|gdp contraction'
+    description: Recession-narrative volume; broad mood indicator
+    sector_relevance: [broad]
+
+  - name: bear_market_mentions
+    query: '"bear market" OR "hard landing"'
+    bq_match:
+      - 'bear market|hard landing|market crash|selloff'
+    description: Market-stress narrative volume; risk-off mood indicator
+    sector_relevance: [broad]

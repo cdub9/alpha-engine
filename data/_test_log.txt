@@ -1,0 +1,7 @@
+
+===== Mon 06/01/2026 17:00:00.13 =====
+--- gdelt ingest ---
+Ingesting 10 signals
+--- digest + paper run ---
+Generated digest. Cost: $0.1482
+2026-06-01: opened 12 new paper trades (across 1 pending digest date(s)), scored 5 trades whose horizon ended.

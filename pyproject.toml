@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alpha_engine"
+version = "0.1.0"
+description = "AI-assisted asset trading system with risk-aware signal generation"
+requires-python = ">=3.11"
+readme = "README.md"
+authors = [{ name = "Coleman Warren" }]
+
+dependencies = [
+    "duckdb>=1.1.0",
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "scipy>=1.13.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.3.0",
+    "PyYAML>=6.0.1",
+    "python-dotenv>=1.0.1",
+    "httpx>=0.27.0",
+    "yfinance>=0.2.40",
+    "lxml>=5.2.0",
+    "anthropic>=0.92.0",
+    "xgboost>=2.0.0",
+    "scikit-learn>=1.4.0",
+    "structlog>=24.1.0",
+    "typer>=0.12.0",
+    "rich>=13.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+]
+# Optional — only for the BigQuery GDELT backend (scripts/ingest_gdelt_bq.py).
+# The base install does not pull the heavy GCP SDK; install on demand with:
+#   pip install -e ".[bigquery]"
+bigquery = [
+    "google-cloud-bigquery>=3.20.0",
+    "db-dtypes>=1.2.0",
+]
+
+[project.scripts]
+alpha = "alpha_engine.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["alpha_engine*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

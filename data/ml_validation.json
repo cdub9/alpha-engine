@@ -1,0 +1,336 @@
+{
+  "generated_at": "2026-06-11T17:26:50",
+  "deep_universe": [
+    "SPY",
+    "QQQ",
+    "DIA",
+    "IWM",
+    "XLB",
+    "XLE",
+    "XLF",
+    "XLI",
+    "XLK",
+    "XLP",
+    "XLU",
+    "XLV",
+    "XLY",
+    "AGG",
+    "TLT",
+    "SHY",
+    "LQD",
+    "HYG",
+    "TIP"
+  ],
+  "notes": "ETF-only universes; individual equities excluded (survivorship bias). Deep = walk-forward OOS, the trustworthy number. Broad = single short window, context only. No LLM involvement \u2014 these results have no training-data contamination.",
+  "deep": {
+    "advisors": {
+      "ml_momentum": {
+        "total_return": 3.120498359817921,
+        "annualized_return": 0.11134352680351323,
+        "annualized_volatility": 0.1661368343569159,
+        "sharpe": 0.5615908163744109,
+        "max_drawdown": -0.3244247802150576,
+        "alpha_annualized": -0.012561638736966661,
+        "beta": 0.8706603074900028,
+        "information_ratio": -0.39538221938577395,
+        "benchmark_total_return": 5.314977062565564,
+        "benchmark_annualized_return": 0.14728862768641982
+      },
+      "ml_xgb": {
+        "total_return": 2.6866267567410613,
+        "annualized_return": 0.10216274023636629,
+        "annualized_volatility": 0.16338148470761965,
+        "sharpe": 0.5148694420285839,
+        "max_drawdown": -0.39195312550391215,
+        "alpha_annualized": -0.016454666805311928,
+        "beta": 0.838572243465311,
+        "information_ratio": -0.4717016472688682,
+        "benchmark_total_return": 5.314977062565564,
+        "benchmark_annualized_return": 0.14728862768641982
+      },
+      "equal_weight": {
+        "total_return": 2.6165825988764335,
+        "annualized_return": 0.10058759527971484,
+        "annualized_volatility": 0.11492858184078181,
+        "sharpe": 0.7182285519446968,
+        "max_drawdown": -0.26337815175810275,
+        "alpha_annualized": 0.002183800281969712,
+        "beta": 0.661513185644822,
+        "information_ratio": -0.7705675042914728,
+        "benchmark_total_return": 5.314977062565564,
+        "benchmark_annualized_return": 0.14728862768641982
+      },
+      "buy_and_hold_spy": {
+        "total_return": 5.314973513407975,
+        "annualized_return": 0.14728857961243214,
+        "annualized_volatility": 0.16822945626842822,
+        "sharpe": 0.7682719549366771,
+        "max_drawdown": -0.33717264156627225,
+        "alpha_annualized": -1.969668233202382e-09,
+        "beta": 0.9999996758262366,
+        "information_ratio": -0.9299395454606539,
+        "benchmark_total_return": 5.314977062565564,
+        "benchmark_annualized_return": 0.14728862768641982
+      }
+    },
+    "walks": {
+      "ml_momentum": [
+        {
+          "window": "2013-01-01\u21922014-12-31",
+          "total_return": 0.5117835532092723,
+          "sharpe": 1.9625394106350205,
+          "max_drawdown": -0.06852724076043026,
+          "vs_benchmark": 0.04808402085957786
+        },
+        {
+          "window": "2015-01-01\u21922016-12-31",
+          "total_return": 0.08060635136810723,
+          "sharpe": 0.27717928533283054,
+          "max_drawdown": -0.19350849019439387,
+          "vs_benchmark": -0.053803658362538975
+        },
+        {
+          "window": "2017-01-01\u21922018-12-31",
+          "total_return": 0.1870318074689472,
+          "sharpe": 0.511902069833666,
+          "max_drawdown": -0.17485165138447345,
+          "vs_benchmark": 0.03440235779581391
+        },
+        {
+          "window": "2019-01-01\u21922020-12-31",
+          "total_return": 0.3906036875324965,
+          "sharpe": 0.6975018962442636,
+          "max_drawdown": -0.3244247802150575,
+          "vs_benchmark": -0.1605757848884961
+        },
+        {
+          "window": "2021-01-01\u21922022-12-31",
+          "total_return": 0.2227674569775533,
+          "sharpe": 0.5286460896767984,
+          "max_drawdown": -0.12545272075961766,
+          "vs_benchmark": 0.1549112785749709
+        },
+        {
+          "window": "2023-01-01\u21922024-12-31",
+          "total_return": 0.28637166765029787,
+          "sharpe": 0.5663942290495305,
+          "max_drawdown": -0.13309772446768675,
+          "vs_benchmark": -0.2960548803785261
+        },
+        {
+          "window": "2025-01-01\u21922026-06-10",
+          "total_return": -0.028558746413251068,
+          "sharpe": -0.3538028825177565,
+          "max_drawdown": -0.20139625551430962,
+          "vs_benchmark": -0.28737316238600696
+        }
+      ],
+      "ml_xgb": [
+        {
+          "window": "2013-01-01\u21922014-12-31",
+          "total_return": 0.252472486476238,
+          "sharpe": 1.305860732362752,
+          "max_drawdown": -0.09498145067304609,
+          "vs_benchmark": -0.21122704587345642
+        },
+        {
+          "window": "2015-01-01\u21922016-12-31",
+          "total_return": 0.1543663268515112,
+          "sharpe": 0.47972662074986566,
+          "max_drawdown": -0.21332386701383543,
+          "vs_benchmark": 0.019956317120864986
+        },
+        {
+          "window": "2017-01-01\u21922018-12-31",
+          "total_return": 0.03740453509420116,
+          "sharpe": 0.030056725889086238,
+          "max_drawdown": -0.19730119413876113,
+          "vs_benchmark": -0.11522491457893214
+        },
+        {
+          "window": "2019-01-01\u21922020-12-31",
+          "total_return": 0.33862822217270105,
+          "sharpe": 0.5611924467034038,
+          "max_drawdown": -0.39195312550391226,
+          "vs_benchmark": -0.21255125024829158
+        },
+        {
+          "window": "2021-01-01\u21922022-12-31",
+          "total_return": 0.06632605130882085,
+          "sharpe": 0.1460578497819354,
+          "max_drawdown": -0.1674361169166485,
+          "vs_benchmark": -0.0015301270937615463
+        },
+        {
+          "window": "2023-01-01\u21922024-12-31",
+          "total_return": 0.3663573941670146,
+          "sharpe": 0.8126551094387675,
+          "max_drawdown": -0.1163993555437417,
+          "vs_benchmark": -0.21606915386180936
+        },
+        {
+          "window": "2025-01-01\u21922026-06-10",
+          "total_return": 0.2602446910073575,
+          "sharpe": 0.7987019538083466,
+          "max_drawdown": -0.1639900247282703,
+          "vs_benchmark": 0.0014302750346015802
+        }
+      ],
+      "equal_weight": [
+        {
+          "window": "2013-01-01\u21922014-12-31",
+          "total_return": 0.3118188520580638,
+          "sharpe": 1.9008631184761078,
+          "max_drawdown": -0.05577747074210937,
+          "vs_benchmark": -0.1518806802916306
+        },
+        {
+          "window": "2015-01-01\u21922016-12-31",
+          "total_return": 0.10694801475025106,
+          "sharpe": 0.5205411187658583,
+          "max_drawdown": -0.09691928578934628,
+          "vs_benchmark": -0.027461994980395144
+        },
+        {
+          "window": "2017-01-01\u21922018-12-31",
+          "total_return": 0.10205822060483172,
+          "sharpe": 0.42334535775740023,
+          "max_drawdown": -0.13349871182039807,
+          "vs_benchmark": -0.05057122906830158
+        },
+        {
+          "window": "2019-01-01\u21922020-12-31",
+          "total_return": 0.39816952634074965,
+          "sharpe": 0.950405483130925,
+          "max_drawdown": -0.2633781517581031,
+          "vs_benchmark": -0.153009946080243
+        },
+        {
+          "window": "2021-01-01\u21922022-12-31",
+          "total_return": 0.05860327705722401,
+          "sharpe": 0.13751876020154855,
+          "max_drawdown": -0.17817548436747588,
+          "vs_benchmark": -0.009252901345358389
+        },
+        {
+          "window": "2023-01-01\u21922024-12-31",
+          "total_return": 0.28127627399000366,
+          "sharpe": 0.8914063074121925,
+          "max_drawdown": -0.08919462899500186,
+          "vs_benchmark": -0.30115027403882033
+        },
+        {
+          "window": "2025-01-01\u21922026-06-10",
+          "total_return": 0.19167246844617347,
+          "sharpe": 0.811125819543059,
+          "max_drawdown": -0.11610224535231606,
+          "vs_benchmark": -0.06714194752658242
+        }
+      ],
+      "buy_and_hold_spy": [
+        {
+          "window": "2013-01-01\u21922014-12-31",
+          "total_return": 0.4636993653177037,
+          "sharpe": 1.9000173071933768,
+          "max_drawdown": -0.0727345085382376,
+          "vs_benchmark": -1.6703199068324182e-07
+        },
+        {
+          "window": "2015-01-01\u21922016-12-31",
+          "total_return": 0.13440996131400995,
+          "sharpe": 0.442639613734996,
+          "max_drawdown": -0.13022939003061762,
+          "vs_benchmark": -4.8416636255765866e-08
+        },
+        {
+          "window": "2017-01-01\u21922018-12-31",
+          "total_return": 0.1526293946935635,
+          "sharpe": 0.4579148374262226,
+          "max_drawdown": -0.19348924401737078,
+          "vs_benchmark": -5.4979569785729154e-08
+        },
+        {
+          "window": "2019-01-01\u21922020-12-31",
+          "total_return": 0.5511792738773278,
+          "sharpe": 0.9225743322420372,
+          "max_drawdown": -0.33717264156627225,
+          "vs_benchmark": -1.9854366484217678e-07
+        },
+        {
+          "window": "2021-01-01\u21922022-12-31",
+          "total_return": 0.06785615395970135,
+          "sharpe": 0.11742257541944041,
+          "max_drawdown": -0.24496386077630905,
+          "vs_benchmark": -2.4442881052522125e-08
+        },
+        {
+          "window": "2023-01-01\u21922024-12-31",
+          "total_return": 0.5824263382294628,
+          "sharpe": 1.6148333229471497,
+          "max_drawdown": -0.09974307274366889,
+          "vs_benchmark": -2.0979936121712228e-07
+        },
+        {
+          "window": "2025-01-01\u21922026-06-10",
+          "total_return": 0.25881432274366234,
+          "sharpe": 0.7492210908103872,
+          "max_drawdown": -0.18755235430184436,
+          "vs_benchmark": -9.322909355624631e-08
+        }
+      ]
+    }
+  },
+  "broad": {
+    "advisors": {
+      "ml_momentum": {
+        "total_return": 0.8276675460023695,
+        "annualized_return": 0.16609020689539333,
+        "annualized_volatility": 0.18254248870739667,
+        "sharpe": 0.6593375126029827,
+        "max_drawdown": -0.1898283119716755,
+        "alpha_annualized": 0.0014801433764287729,
+        "beta": 0.8875313555373754,
+        "information_ratio": -0.17830958057994822,
+        "benchmark_total_return": 1.0022037735874485,
+        "benchmark_annualized_return": 0.1935075268453148
+      },
+      "ml_xgb": {
+        "total_return": 1.2567482483048353,
+        "annualized_return": 0.2304628277619809,
+        "annualized_volatility": 0.18299814594874228,
+        "sharpe": 1.0094623109844143,
+        "max_drawdown": -0.19150575461605235,
+        "alpha_annualized": 0.04217846720520756,
+        "beta": 0.9561855823920823,
+        "information_ratio": 0.357440487913761,
+        "benchmark_total_return": 1.0022037735874485,
+        "benchmark_annualized_return": 0.1935075268453148
+      },
+      "equal_weight": {
+        "total_return": 0.8231104749583378,
+        "annualized_return": 0.16534867665384922,
+        "annualized_volatility": 0.13992775905579774,
+        "sharpe": 0.8548381037064335,
+        "max_drawdown": -0.1525155428560966,
+        "alpha_annualized": 0.009343598841722891,
+        "beta": 0.8064237393590098,
+        "information_ratio": -0.49343522194492506,
+        "benchmark_total_return": 1.0022037735874485,
+        "benchmark_annualized_return": 0.1935075268453148
+      },
+      "buy_and_hold_spy": {
+        "total_return": 1.002203412577614,
+        "annualized_return": 0.19350747201254337,
+        "annualized_volatility": 0.16395466825100122,
+        "sharpe": 0.9013124002032835,
+        "max_drawdown": -0.18755237822790738,
+        "alpha_annualized": -1.49630405722051e-10,
+        "beta": 0.9999997200075975,
+        "information_ratio": -1.1387101790555698,
+        "benchmark_total_return": 1.0022037735874485,
+        "benchmark_annualized_return": 0.1935075268453148
+      }
+    },
+    "universe_size": 45
+  }
+}
