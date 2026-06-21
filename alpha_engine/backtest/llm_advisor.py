@@ -56,7 +56,34 @@ log = get_logger(__name__)
 #            operating principle (cohort is ~empty; v3 shipped same day)
 #   v3-fb  — 2026-06-11: self-learning feedback loop — open-positions +
 #            track-record snapshot sections + calibration principle
-DEFAULT_MODEL_VERSION = "llm-opus-4-7-v3-fb"
+PROMPT_VERSION_TAG = "v3-fb"
+
+# The primary digest model the live cohort is generated with. Kept as a
+# literal (not imported from llm.client) so this cache/advisor layer stays
+# free of the Anthropic SDK — see the module docstring's "no API calls" note.
+DEFAULT_PRIMARY_MODEL = "claude-opus-4-7"
+
+
+def model_version_for(
+    primary_model: str, prompt_tag: str = PROMPT_VERSION_TAG
+) -> str:
+    """Cohort tag for a given primary model + prompt version.
+
+    e.g. ``claude-sonnet-4-6`` -> ``llm-sonnet-4-6-v3-fb``. This is what
+    keeps an Opus run and a Sonnet A/B run in cleanly separable cohorts:
+    the tag flows into the cache PK, signals.model_version, and every
+    downstream group-by, so the two never contaminate each other.
+    """
+    core = (
+        primary_model[len("claude-"):]
+        if primary_model.startswith("claude-")
+        else primary_model
+    )
+    return f"llm-{core}-{prompt_tag}"
+
+
+# = "llm-opus-4-7-v3-fb" — the live default cohort (unchanged).
+DEFAULT_MODEL_VERSION = model_version_for(DEFAULT_PRIMARY_MODEL)
 
 # Directions that mean "be in this position" at the given weight
 _POSITIVE_DIRECTIONS = {"buy", "add", "hold"}

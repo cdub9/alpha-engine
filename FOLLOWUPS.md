@@ -502,6 +502,75 @@ Each item is:
     compare conv>=7.5 alpha/win-rate across model_version after 2-4 weeks
     of v2 data accumulates.
 
+### A/B test Sonnet 4.6 on the primary digest to cut run cost — PLUMBING + TEST TOOL SHIPPED
+- **Why it matters:** The primary digest call runs on `claude-opus-4-7`
+  (the client's `DEFAULT_MODEL`) at ~$0.16/run, ~$4.80/mo at one run/day.
+  `claude-sonnet-4-6` is already priced in the client at $3/$15 per 1M
+  tokens (`alpha_engine/llm/client.py:_MODEL_PRICING`) vs Opus 4.7's
+  higher rate — roughly a 40-50% cut on the primary call. If Sonnet's pick
+  quality holds on this task, that's a free recurring saving; the dissent
+  layer already took the same "cheaper model where it's good enough" bet
+  (Haiku 4.5) and held quality. The open question is purely whether Sonnet
+  picks as well as Opus here, which only an A/B answers.
+- **How to address:**
+  1. Thread a `primary_model` arg through `run_digest` (digest.py:65) into
+     `client.call_structured(...)` — the client method already accepts a
+     `model=` param and gates features per-model, so this is a one-arg
+     passthrough, not new infrastructure. Expose it as a `--primary-model`
+     flag on `scripts/run_digest.py`.
+  2. Tag the cohort distinctly: pass `model_version="llm-sonnet-4-6-v3-fb"`
+     to `persist_signals` so Sonnet signals never mix with the Opus cohort.
+     This keeps them separable in EVERY downstream view for free — the
+     forward-validation scorers shipped 2026-06-19
+     (`feedback_eval`/`forward_eval`) and the conviction-calibration table
+     all group by `model_version`, so a Sonnet run shows up side-by-side
+     automatically. No new dashboard work needed.
+  3. Run both models for ~3-4 weeks (or alternate days), then compare
+     conv>=7.5 alpha + win rate + the BUY/AVOID forward spread across the
+     two `model_version` cohorts once trades mature.
+- **Cautions:** a model swap muddies the forward cohort the same way a
+  prompt change does (see the v2-ta/v3 overlap note above) — use the
+  distinct version tag and a clean date boundary, and don't change the
+  prompt in the same window. Rollback is trivial (drop the flag; the
+  default stays Opus), and Sonnet rows stay quarantined under their own
+  version tag so they never contaminate the Opus track record.
+- **Cost math:** ~$4.80/mo Opus -> ~$2.50-2.90/mo Sonnet at one run/day, if
+  quality holds. The A/B itself costs ~2x normal spend for the comparison
+  window (running both), then the cheaper one going forward.
+- **Added:** 2026-06-20 (cost-reduction idea; plumbing exists, never logged)
+- **Priority:** MEDIUM — real recurring saving, but unproven quality and
+  small absolute dollars; don't run it concurrently with another prompt
+  change.
+- **Shipped 2026-06-20 (plumbing + single-day test tool; the DECISION is
+  still pending real data):**
+  - `run_digest` gained `primary_model` + `model_version` args (digest.py);
+    the primary `call_structured` now takes the model, and the internal
+    `persist_signals` is tagged with the cohort so a Sonnet run can't write
+    under the Opus tag (it previously would have — latent bug fixed).
+  - Cohort tags are centralized: `llm_advisor.model_version_for(model)` maps
+    e.g. `claude-sonnet-4-6` -> `llm-sonnet-4-6-v3-fb`; `DEFAULT_MODEL_VERSION`
+    is now derived from it and still equals `llm-opus-4-7-v3-fb` (unchanged;
+    pinned by tests).
+  - `paper_trader.py run-day` and `scripts/run_digest.py` both expose
+    `--primary-model`; run-day AUTO-DERIVES the cohort tag from the model
+    (override with `--model-version`), so the forward A/B is one flag:
+    `run-day --generate --primary-model claude-sonnet-4-6` writes a fully
+    separate cache + signals + trades cohort. The nightly bat is unchanged
+    (still Opus), so opting in is deliberate.
+  - `scripts/compare_models.py` (+ pure `alpha_engine/llm/compare.py`):
+    the CLEAN single-day test — one snapshot, sent identically to two models,
+    reports symbol overlap (Jaccard) / direction agreement / conviction MAE
+    + per-call cost + $/mo saving. ~$0.25, writes nothing. High agreement =
+    low-risk switch; the skill verdict still comes from the forward cohorts.
+  - 9 unit tests in `tests/test_model_ab.py` (tag derivation incl. the Opus
+    back-compat pin; comparison math). Existing `model_version` pin tests
+    still green.
+  - **NOT yet done (needs the user + spend):** run `compare_models.py` for a
+    few days to gauge agreement, then if it holds, run the Sonnet forward
+    cohort nightly for ~3-4 weeks and compare on the dashboard
+    (`feedback_eval`/`forward_eval` already group by model_version) before
+    flipping the default. The default is still Opus until that read exists.
+
 ---
 
 ## LLM backtesting

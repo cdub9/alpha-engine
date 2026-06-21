@@ -210,6 +210,12 @@ def main(
         "claude-haiku-4-5",
         help="Model for batch dissent. Use 'claude-opus-4-7' for deeper counter-args.",
     ),
+    primary_model: str = typer.Option(
+        "claude-opus-4-7",
+        "--primary-model",
+        help="Model for the primary suggestion call. Pass 'claude-sonnet-4-6' "
+             "to A/B a cheaper model; persisted signals are tagged by model.",
+    ),
     no_persist: bool = typer.Option(False, "--no-persist"),
     effort: str = typer.Option("high", help="low|medium|high|xhigh|max (primary call)"),
     dump_snapshot: bool = typer.Option(False, "--dump-snapshot"),
@@ -261,7 +267,7 @@ def main(
 
         console.print(
             f"[bold cyan]Running digest for {target_date}[/] "
-            f"(primary effort={effort}, dissent={not no_dissent} "
+            f"(primary {primary_model} effort={effort}, dissent={not no_dissent} "
             f"@ {dissent_model} threshold {dissent_threshold}, "
             f"persist={not no_persist})"
         )
@@ -270,6 +276,7 @@ def main(
             as_of=target_date,
             enable_dissent=not no_dissent,
             dissent_model=dissent_model,
+            primary_model=primary_model,
             dissent_min_conviction=dissent_threshold,
             persist=not no_persist,
             effort=effort,

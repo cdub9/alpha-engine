@@ -47,8 +47,10 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 from alpha_engine.calendars.scheduled import is_nyse_holiday, is_trading_day
 from alpha_engine.backtest.llm_advisor import (
     DEFAULT_MODEL_VERSION,
+    DEFAULT_PRIMARY_MODEL,
     config_hash,
     get_cached_output,
+    model_version_for,
     store_cached_output,
 )
 from alpha_engine.core.config import get_settings
@@ -329,7 +331,17 @@ def run_day(
     ),
     min_conviction: float = typer.Option(6.0),
     default_horizon: int = typer.Option(30),
-    model_version: str = typer.Option(DEFAULT_MODEL_VERSION),
+    primary_model: str = typer.Option(
+        DEFAULT_PRIMARY_MODEL,
+        "--primary-model",
+        help="Model for the primary digest call. Pass 'claude-sonnet-4-6' to "
+             "A/B a cheaper model — it lands in its own cohort automatically.",
+    ),
+    model_version: str = typer.Option(
+        "",
+        help="Cohort tag for signals/cache. Empty = auto-derive from "
+             "--primary-model (recommended; keeps Opus/Sonnet cohorts apart).",
+    ),
     effort: str = typer.Option("high"),
     force: bool = typer.Option(
         False,
@@ -345,6 +357,9 @@ def run_day(
     configure_logging(level=log_level)
     init_schema()
     target = datetime.strptime(as_of, "%Y-%m-%d").date() if as_of else date.today()
+    # Auto-derive the cohort tag from the model unless overridden, so a
+    # Sonnet A/B can't accidentally write under the Opus tag.
+    model_version = model_version or model_version_for(primary_model)
 
     settings = get_settings()
     with get_connection(read_only=True) as con:
@@ -376,7 +391,8 @@ def run_day(
             raise typer.Exit(1)
         console.print(
             Panel(
-                f"[yellow]About to spend ~$0.15 on an Opus 4.7 digest for {target}.[/]\n"
+                f"[yellow]About to spend ~$0.10-0.16 on a {primary_model} digest "
+                f"for {target}[/] (cohort [bold]{model_version}[/]).\n"
                 f"Re-run without --generate to skip.",
                 border_style="yellow",
             )
@@ -388,6 +404,8 @@ def run_day(
             universe=universe,
             enable_dissent=False,  # cheaper; dissent for live trading is optional
             persist=True,           # also persist into signals
+            primary_model=primary_model,
+            model_version=model_version,
             effort=effort,
             dissent_model="claude-haiku-4-5",
         )

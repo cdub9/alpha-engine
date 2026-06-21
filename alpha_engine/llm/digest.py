@@ -19,9 +19,10 @@ from typing import Optional
 
 import duckdb
 
+from alpha_engine.backtest.llm_advisor import model_version_for
 from alpha_engine.core.logging import get_logger
 from alpha_engine.db import get_connection
-from alpha_engine.llm.client import LLMClient, LLMResponse
+from alpha_engine.llm.client import DEFAULT_MODEL, LLMClient, LLMResponse
 from alpha_engine.llm.context import DailySnapshot, build_snapshot
 from alpha_engine.llm.dissent import (
     DissentResult,
@@ -69,6 +70,8 @@ def run_digest(
     dissent_min_conviction: float = 7.5,
     enable_dissent: bool = True,
     dissent_model: str = "claude-haiku-4-5",
+    primary_model: str = DEFAULT_MODEL,
+    model_version: Optional[str] = None,
     persist: bool = True,
     effort: str = "high",
     con: Optional[duckdb.DuckDBPyConnection] = None,
@@ -84,6 +87,12 @@ def run_digest(
         enable_dissent: set False to skip dissent calls entirely (cheaper).
         dissent_model: model used for the batch dissent call. Defaults to
             Haiku 4.5 (~5x cheaper than Opus for bounded reasoning).
+        primary_model: model for the PRIMARY suggestion call. Defaults to
+            Opus 4.7. Pass e.g. "claude-sonnet-4-6" to A/B a cheaper model.
+        model_version: cohort tag written to signals.model_version. Defaults
+            to the tag derived from `primary_model` (e.g. a Sonnet run lands
+            under "llm-sonnet-4-6-v3-fb"), so an A/B run never contaminates
+            the Opus cohort. Pass explicitly only to override.
         persist: write to signals table. Set False for dry runs.
         effort: LLM effort level for the PRIMARY call. "high" is the
             recommended minimum for intelligence-sensitive work; "max" is
@@ -93,6 +102,7 @@ def run_digest(
     owned_con = con is None
     if owned_con:
         con = get_connection(read_only=False)
+    mv = model_version or model_version_for(primary_model)
 
     try:
         universe = universe or _default_universe(con)
@@ -108,6 +118,7 @@ def run_digest(
             system_prompt=SYSTEM_PROMPT,
             user_message=user_message,
             output_schema=OUTPUT_SCHEMA,
+            model=primary_model,
             effort=effort,
         )
         primary_output = primary.parsed
@@ -171,6 +182,7 @@ def run_digest(
                 con,
                 primary_output=primary_output,
                 snapshot_universe=universe,
+                model_version=mv,
                 generated_at=datetime.now(timezone.utc),
             )
 
@@ -188,6 +200,8 @@ def run_digest(
         log.info(
             "digest_run_complete",
             as_of=str(snapshot.as_of),
+            primary_model=primary_model,
+            model_version=mv,
             primary_cost=round(primary.cost_estimate_usd, 4),
             dissent_count=len(dissents),
             total_cost_usd=round(total_cost, 4),
