@@ -78,6 +78,38 @@ def cluster_of(symbol: str) -> str:
     return _SYMBOL_TO_CLUSTER.get(symbol.upper().strip(), "other")
 
 
+def trend_state(prices: list[float], window: int = 200) -> Optional[dict[str, Any]]:
+    """Trend location of a price series vs its `window`-day moving average.
+
+    The "stay long while the trend holds, de-risk when it breaks" rule:
+    above the 200-DMA = trend intact (a trim is right-sizing, not exiting);
+    below = a real de-risk signal, not a wobble. Returns None when there
+    isn't enough history. Pure (no numpy) so it's trivially testable.
+    """
+    if len(prices) < window:
+        return None
+    sma = sum(prices[-window:]) / window
+    last = prices[-1]
+    return {
+        "last": last,
+        "sma": sma,
+        "distance": (last - sma) / sma if sma else 0.0,
+        "above": last >= sma,
+        "window": window,
+    }
+
+
+def annualized_vol_drag(daily_returns: list[float]) -> dict[str, float]:
+    """Annualized volatility and the geometric 'vol drag' (~0.5·σ²) — the
+    compound-return tax a volatile holding pays regardless of its mean.
+    Returns {'vol', 'drag'} annualized, or zeros for too-short input."""
+    if len(daily_returns) < 30:
+        return {"vol": 0.0, "drag": 0.0}
+    mu = sum(daily_returns) / len(daily_returns)
+    var = sum((r - mu) ** 2 for r in daily_returns) / (len(daily_returns) - 1)
+    return {"vol": (var ** 0.5) * (252 ** 0.5), "drag": 0.5 * var * 252}
+
+
 def concentration_report(
     holdings: list[dict[str, Any]],
     caps: Optional[dict[str, float]] = None,

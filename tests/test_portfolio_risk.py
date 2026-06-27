@@ -9,9 +9,11 @@ import pytest
 
 from alpha_engine.risk.earnings_guard import has_imminent_earnings, upcoming_earnings
 from alpha_engine.risk.portfolio import (
+    annualized_vol_drag,
     cluster_of,
     concentration_report,
     rank_actions,
+    trend_state,
 )
 
 
@@ -98,6 +100,31 @@ def test_low_cash_hedge_flag():
     # not flagged when cash is healthy
     actions2 = rank_actions(rep, cash_weight=0.20)
     assert not any(a["icon"] == "shield-half" for a in actions2)
+
+
+# --- trend + vol drag ------------------------------------------------------
+
+def test_trend_state_above_and_below():
+    rising = list(range(1, 251))  # 250 points, last well above the 200-avg
+    ts = trend_state([float(x) for x in rising], window=200)
+    assert ts["above"] is True
+    assert ts["distance"] > 0
+    falling = [float(x) for x in range(250, 0, -1)]
+    assert trend_state(falling, window=200)["above"] is False
+
+
+def test_trend_state_needs_history():
+    assert trend_state([1.0, 2.0, 3.0], window=200) is None
+
+
+def test_vol_drag_positive_for_volatile_series():
+    # alternating +/-5% daily returns: high vol, large drag
+    rets = [0.05, -0.05] * 60
+    out = annualized_vol_drag(rets)
+    assert out["vol"] > 0.5
+    assert out["drag"] > 0
+    # too-short input -> zeros
+    assert annualized_vol_drag([0.01, 0.02])["drag"] == 0.0
 
 
 # --- earnings guard --------------------------------------------------------

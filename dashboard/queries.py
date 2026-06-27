@@ -1667,6 +1667,27 @@ def portfolio_action_center(
         )
     actions = rank_actions(report, upcoming_earnings=earnings, cash_weight=cash_weight)
 
+    # Semis-cluster trend + vol-drag, computed from a liquid proxy (SMH,
+    # falling back to SOXX). The trend says whether a de-risk is urgent
+    # (broken trend) or just right-sizing (intact); the vol-drag is the
+    # mean-independent compounding tax the cluster pays.
+    from alpha_engine.risk.portfolio import annualized_vol_drag, trend_state
+
+    semis_trend = None
+    for proxy in ("SMH", "SOXX"):
+        with _conn() as con:
+            px = [r[0] for r in con.execute(
+                "SELECT adj_close FROM market_bars WHERE symbol = ? ORDER BY bar_date",
+                [proxy],
+            ).fetchall()]
+        ts = trend_state(px, window=200)
+        if ts is None:
+            continue
+        rets = [px[i] / px[i - 1] - 1.0 for i in range(1, len(px))]
+        vd = annualized_vol_drag(rets)
+        semis_trend = {"proxy": proxy, **ts, **vd}
+        break
+
     return {
         "account": snap.get("account", ""),
         "as_of": snap.get("as_of", ""),
@@ -1676,6 +1697,7 @@ def portfolio_action_center(
         "report": report,
         "actions": actions,
         "earnings": earnings,
+        "semis_trend": semis_trend,
     }
 
 

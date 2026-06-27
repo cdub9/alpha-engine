@@ -80,6 +80,25 @@ def render() -> None:
     c4.metric("Cash", f"{(data['cash_weight'] or 0):.1%}")
 
     st.caption(f"Account {data['account']} · snapshot {data['as_of']}")
+
+    # Semis-cluster trend signal — is a de-risk urgent, or just right-sizing?
+    tr = data.get("semis_trend")
+    if tr:
+        if tr["above"]:
+            st.success(
+                f"📈 Semis trend intact — {tr['proxy']} is {tr['distance']:+.0%} "
+                f"above its {tr['window']}-day average. The uptrend supports "
+                "staying long; treat the trims below as right-sizing the tail, "
+                "not exiting. A de-risk alert fires only if this breaks below the line. "
+                f"(Cluster carries ~{tr['vol']:.0%} vol → ~{tr['drag']:.0%}/yr "
+                "compounding drag regardless of direction.)"
+            )
+        else:
+            st.error(
+                f"📉 Semis trend BROKEN — {tr['proxy']} is {tr['distance']:+.0%} "
+                f"vs its {tr['window']}-day average. This is the de-risk signal: "
+                "trend-following says cut exposure now, not on a bounce."
+            )
     st.divider()
 
     # The ranked actions — the centerpiece
