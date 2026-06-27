@@ -357,6 +357,29 @@ Each item is:
 - **Added:** 2026-05-29 (first LLM digest run)
 - **Resolved:** 2026-05-30 — `persist_signals` now DELETEs prior same-day rows for `(DATE(generated_at), model_version)` before insert. Second run replaces first cleanly; logged as `signals_same_day_replaced`.
 
+### Re-runs across DIFFERENT generated-dates still double-open paper trades
+- **Why it matters:** The same-day dedup above keys on
+  `(DATE(generated_at), model_version)`, so it only collapses re-runs that
+  land on the SAME generated-date. But a manual `run-day` re-run (or the
+  v1→v3 backfill) can persist the same logical pick under a *different*
+  `generated_at` date — backfill stamps the as_of's midnight UTC, a live
+  run stamps `now()`. Those escape the same-day DELETE, so two signals for
+  the same `(channel, symbol, direction, entry-date)` survive, and the
+  orphan-open logic in `run-day` (open signals where no trade exists yet)
+  opens a paper trade for BOTH. Result: duplicate trades that inflate the
+  track record. Found + cleaned 39 such trades (06/01, 06/10, 06/18 cohorts)
+  on 2026-06-27 via the new `scripts/dedup_paper_trades.py`; root cause left
+  unfixed so it can recur on the next manual re-run.
+- **How to address:** Make trade-opening idempotent on the ENTRY identity,
+  not the signal row: before `open_paper_trades_for_date` inserts, skip any
+  `(channel, symbol, direction, entry-date)` that already has a paper_filled
+  trade (regardless of which signal it came from). Or dedup signals on
+  `(channel, symbol, direction, as_of)` instead of `DATE(generated_at)`.
+  Either makes re-runs safe without the manual dedup pass. Low priority
+  while re-runs are rare and the dedup script exists, but it's a real
+  latent data-integrity bug.
+- **Added:** 2026-06-27 (found while auditing the twice-daily scheduled run)
+
 ### Cache hit rate hasn't been verified end-to-end — TOOLING SHIPPED, NOT YET RUN
 - **Why it matters:** We set `cache_control: {type: "ephemeral"}` on the
   primary system prompt (~1100 tokens) and the first run showed
