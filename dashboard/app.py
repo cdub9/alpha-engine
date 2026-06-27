@@ -22,6 +22,7 @@ import streamlit as st  # noqa: E402
 from streamlit_autorefresh import st_autorefresh  # noqa: E402
 
 from dashboard.views import (  # noqa: E402
+    action_center,
     lookup,
     ml_signals,
     open_trades,
@@ -42,7 +43,8 @@ def main() -> None:
 
     pages = {
         "Trading": [
-            st.Page(suggestions.render, title="Suggestions", icon="📈", url_path="suggestions", default=True),
+            st.Page(action_center.render, title="Action Center", icon="🎯", url_path="action-center", default=True),
+            st.Page(suggestions.render, title="Suggestions", icon="📈", url_path="suggestions"),
             st.Page(ml_signals.render, title="ML Signals", icon="🤖", url_path="ml-signals"),
             st.Page(open_trades.render, title="Open Trades", icon="📂", url_path="open-trades"),
         ],

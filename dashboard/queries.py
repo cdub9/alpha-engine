@@ -1629,6 +1629,56 @@ def ml_forward_performance(horizon: int = 21) -> dict[str, Any]:
         return compute_forward_performance(con, horizon=horizon)
 
 
+def portfolio_action_center(
+    horizon_days: int = 7,
+) -> Optional[dict[str, Any]]:
+    """Load the real-holdings snapshot (data/real_holdings.json) and run the
+    concentration + earnings risk engine, returning the ranked Action Center
+    payload. None when no snapshot exists yet."""
+    from datetime import date as _date
+    from pathlib import Path
+
+    from alpha_engine.risk.earnings_guard import upcoming_earnings
+    from alpha_engine.risk.portfolio import concentration_report, rank_actions
+
+    p = Path(__file__).resolve().parent.parent / "data" / "real_holdings.json"
+    if not p.exists():
+        return None
+    try:
+        snap = json.loads(p.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    holdings = snap.get("holdings", [])
+    if not holdings:
+        return None
+    report = concentration_report(holdings)
+    cash = float(snap.get("cash") or 0.0)
+    cash_weight = cash / (report["total_value"] + cash) if (report["total_value"] + cash) else None
+
+    values = {h["symbol"].upper(): float(h["value"]) for h in holdings}
+    try:
+        as_of = _date.fromisoformat(snap.get("as_of")) if snap.get("as_of") else _date.today()
+    except (TypeError, ValueError):
+        as_of = _date.today()
+    with _conn() as con:
+        earnings = upcoming_earnings(
+            con, list(values), as_of, horizon_days=horizon_days, values=values
+        )
+    actions = rank_actions(report, upcoming_earnings=earnings, cash_weight=cash_weight)
+
+    return {
+        "account": snap.get("account", ""),
+        "as_of": snap.get("as_of", ""),
+        "cash": cash,
+        "cash_weight": cash_weight,
+        "total_equity": report["total_value"],
+        "report": report,
+        "actions": actions,
+        "earnings": earnings,
+    }
+
+
 def feedback_loop_behavior() -> dict[str, Any]:
     """Per-model_version behavior comparison (v1 vs v3-fb): conviction-
     calibration slope, duplicate-of-holding share, action mix, and repeated

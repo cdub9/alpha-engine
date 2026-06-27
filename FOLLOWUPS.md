@@ -1175,6 +1175,51 @@ Each item is:
   funds, simply start at their inception — expected.)
 - **Added:** 2026-06-13 (2007 backfill)
 
+## Portfolio risk / drawdown defense
+
+### Concentration + earnings risk engine and Action Center — SHIPPED 2026-06-27
+- **Why it mattered:** The June 4 / 22 / 26 "$10k days" were NOT market
+  drops (SPY was +0.4% / -0.3% / mixed). They were a concentrated
+  semis/AI-hardware book getting hit — AVGO -12.6% earnings gap (06/03
+  print, on the calendar), post-quad-witching growth rotation (06/22), and
+  an ongoing memory/storage selloff (06/26: WDC -13%, STX -13%, MU -7.5%).
+  The real ••5210 account is ~38% semis/AI-hardware, MU alone ~12%, ~55%
+  total tech. The digest had flagged every one of these risks in prose but
+  nothing translated warning -> action.
+- **What shipped:**
+  - `alpha_engine/risk/portfolio.py` — correlated-cluster map (semis/AI-HW,
+    tech-growth ETFs, broad index, leveraged, intl, defensive, bonds),
+    `concentration_report()` (per-name + per-cluster weights, cap breaches;
+    diversified baskets exempt from the single-NAME cap so a 15% IVV isn't
+    flagged like a 12% MU), and `rank_actions()` -> severity-ranked action
+    list (trim oversized name, cut cluster, earnings trim, low-cash hedge).
+  - `alpha_engine/risk/earnings_guard.py` — `upcoming_earnings()` /
+    `has_imminent_earnings()` over calendar_events (the earnings-blackout
+    rule's data layer).
+  - Dashboard "Action Center" page (now the default Trading tab):
+    headline risk metrics, the ranked "do these first" cards, a
+    concentration bar, positions-by-weight detail. Reads
+    `data/real_holdings.json` (gitignored — real positions).
+    `queries.portfolio_action_center()` wires it together.
+  - 10 unit tests in `tests/test_portfolio_risk.py`.
+- **Open follow-ups:**
+  1. **Earnings calendar is stale + universe-only.** It's ingested only
+     through ~06/18 and covers the ~115-name universe, so most of the real
+     book's names (and any print >7d out) don't surface in the guard today.
+     Refresh it on the nightly run and extend coverage to held symbols
+     beyond the universe, or the earnings-blackout rule stays half-blind.
+  2. **Wire the guard into the paper trader's open path** —
+     `has_imminent_earnings()` is ready; have `open_paper_trades_for_date`
+     refuse fresh full size into a print (deterministic enforcement, not
+     just a dashboard nudge).
+  3. **Auto-refresh `real_holdings.json`** — currently a manual brokerage
+     pull. A small script to refresh positions + quotes would keep the
+     Action Center live.
+  4. **Feed the concentration caps into the LLM snapshot** so the digest
+     sizes around the real book (e.g. "you're already 38% semis — stop
+     adding") instead of only the paper portfolio.
+- **Added:** 2026-06-27 (post-mortem on the June drawdowns)
+
 ## Done
 
 <!-- When closing an item, move it here with a date and one-line resolution. -->

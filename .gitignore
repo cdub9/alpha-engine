@@ -36,6 +36,9 @@ data/*.sqlite*
 data/backups/
 data/last_run_status.json
 
+# Real brokerage holdings snapshot — personal financial data, never commit
+data/real_holdings.json
+
 # Logs
 *.log
 logs/
