@@ -1688,6 +1688,24 @@ def portfolio_action_center(
         semis_trend = {"proxy": proxy, **ts, **vd}
         break
 
+    # ML ranks on the names actually held, so the trade plan can prefer
+    # trimming AVOID-rated names and flag when it's cutting a BUY-rated one.
+    ml_actions: dict[str, str] = {}
+    ml_d = latest_ml_date()
+    if ml_d is not None:
+        lookup = ml_action_lookup(ml_d)
+        for sym in values:
+            info = lookup.get(sym)
+            if info and info.get("action"):
+                ml_actions[sym] = info["action"]
+
+    from alpha_engine.risk.trade_plan import build_trade_plan
+
+    plan = build_trade_plan(
+        holdings, report, report["caps"],
+        trend=semis_trend, earnings=earnings, ml_actions=ml_actions,
+    )
+
     return {
         "account": snap.get("account", ""),
         "as_of": snap.get("as_of", ""),
@@ -1698,6 +1716,8 @@ def portfolio_action_center(
         "actions": actions,
         "earnings": earnings,
         "semis_trend": semis_trend,
+        "ml_actions": ml_actions,
+        "plan": plan,
     }
 
 

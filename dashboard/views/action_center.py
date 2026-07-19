@@ -1,12 +1,13 @@
 """Page — Action Center.
 
-The highest-value risk actions for the real brokerage book, ranked so the
-most impactful move (trim the oversized single name, cut the concentrated
-cluster, trim into earnings) is one glance away instead of buried across 60+
-rows. Backed by alpha_engine.risk.portfolio + earnings_guard.
+One question, answered as order tickets: what do I do today? The page leads
+with concrete SELL orders (exact shares, dollars, reason, timing) synthesized
+from every analysis the app runs — concentration caps, the earnings guard,
+the semis-trend state, and the ML ranks. Everything else is tucked into
+expanders so the trades are the first and biggest thing on the screen.
 
-Holdings come from data/real_holdings.json (refreshed by pulling positions
-from the brokerage). Read-only.
+Holdings come from data/real_holdings.json, refreshed via the brokerage
+connector. Read-only.
 """
 
 from __future__ import annotations
@@ -16,128 +17,122 @@ import streamlit as st
 
 from dashboard import queries as q
 
-_SEV = {
-    "critical": ("🔴", "Critical"),
-    "high": ("🟠", "High"),
-    "watch": ("⚪", "Watch"),
-}
-
-# Stacked concentration bar order + colors (dark-mode safe hexes).
-_BAND_ORDER = [
-    ("semis_ai_hw", "Semis/AI-HW", "#E24B4A"),
-    ("tech_growth_etf", "Tech ETF", "#EF9F27"),
-    ("broad_index", "Broad", "#378ADD"),
-    ("international", "Intl", "#1D9E75"),
-    ("defensive", "Defensive", "#7F77DD"),
-    ("bonds_credit", "Bonds", "#888780"),
-    ("leveraged", "Leveraged", "#D4537E"),
-    ("other", "Other", "#D3D1C7"),
-]
+_WHEN_COLOR = {"Now": "#E24B4A"}
 
 
-def _action_row(a: dict) -> None:
-    icon, label = _SEV.get(a["severity"], ("•", a["severity"].title()))
-    c1, c2 = st.columns([5, 1])
-    with c1:
-        st.markdown(f"{icon} **{a['title']}**")
-        st.caption(a["rationale"])
-    with c2:
-        st.markdown(
-            f"<div style='text-align:right;font-family:monospace'>"
-            f"{a['metric_now']} → {a['metric_target']}</div>",
-            unsafe_allow_html=True,
-        )
+def _order_card(o: dict) -> None:
+    sh = f"{o['shares']} sh" if o.get("shares") else "—"
+    dollars = f"~${o['est_dollars']:,.0f}" if o.get("est_dollars") else ""
+    when = o["when"]
+    when_color = "#E24B4A" if when == "Now" else ("#BA7517" if when.startswith("Before") else "#888780")
+    tgt = f" → {o['target_weight']:.0%}" if o.get("target_weight") is not None else ""
+    cur = f"{o['current_weight']:.1%}" if o.get("current_weight") is not None else ""
+    st.markdown(
+        f"<div style='border:0.5px solid var(--border,#ccc);border-radius:12px;"
+        f"padding:0.7rem 1rem;margin-bottom:8px'>"
+        f"<div style='display:flex;justify-content:space-between;align-items:baseline'>"
+        f"<span style='font-size:16px'><b>{o['action']} {sh} {o['symbol']}</b> "
+        f"<span style='font-family:monospace;color:#888'>{dollars}</span></span>"
+        f"<span style='font-size:12px;color:#fff;background:{when_color};"
+        f"padding:2px 10px;border-radius:999px'>{when}</span></div>"
+        f"<div style='font-size:13px;color:var(--text-secondary,#555);margin-top:4px'>"
+        f"{o['reason']} <span style='color:#888'>({cur}{tgt})</span></div>"
+        + (f"<div style='font-size:12px;color:#888;margin-top:2px'>{o['ml_note']}</div>"
+           if o.get("ml_note") else "")
+        + "</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def render() -> None:
     st.title("🎯 Action Center")
-    st.caption(
-        "Your real book, ranked by what to fix first. Concentration and "
-        "earnings risk on the highest-impact positions — act from the top."
-    )
 
     data = q.portfolio_action_center()
     if data is None:
         st.info(
-            "No holdings snapshot yet. Pull your brokerage positions into "
-            "`data/real_holdings.json` to populate this page."
+            "No holdings snapshot yet. Ask the assistant to refresh your "
+            "positions via the brokerage connector."
         )
         return
 
     report = data["report"]
     total = data["total_equity"]
     top = report.get("top_name") or {}
-
-    # Headline risk metrics
-    semis_w = report["clusters"].get("semis_ai_hw", {}).get("weight", 0.0)
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Account value", f"${total:,.0f}")
-    c2.metric("Semis / AI-hardware", f"{semis_w:.1%}",
-              help="Share of the book in one correlated semiconductor cluster. Target < 20%.")
-    c3.metric("Biggest single name",
-              f"{top.get('symbol','—')} {top.get('weight',0):.1%}" if top else "—",
-              help="Largest single-stock position. Target < 5%.")
-    c4.metric("Cash", f"{(data['cash_weight'] or 0):.1%}")
-
-    st.caption(f"Account {data['account']} · snapshot {data['as_of']}")
-
-    # Semis-cluster trend signal — is a de-risk urgent, or just right-sizing?
     tr = data.get("semis_trend")
-    if tr:
-        if tr["above"]:
-            st.success(
-                f"📈 Semis trend intact — {tr['proxy']} is {tr['distance']:+.0%} "
-                f"above its {tr['window']}-day average. The uptrend supports "
-                "staying long; treat the trims below as right-sizing the tail, "
-                "not exiting. A de-risk alert fires only if this breaks below the line. "
-                f"(Cluster carries ~{tr['vol']:.0%} vol → ~{tr['drag']:.0%}/yr "
-                "compounding drag regardless of direction.)"
-            )
-        else:
-            st.error(
-                f"📉 Semis trend BROKEN — {tr['proxy']} is {tr['distance']:+.0%} "
-                f"vs its {tr['window']}-day average. This is the de-risk signal: "
-                "trend-following says cut exposure now, not on a bounce."
-            )
-    st.divider()
+    plan = data["plan"]
 
-    # The ranked actions — the centerpiece
-    st.subheader("Do these first")
-    actions = data["actions"]
-    if not actions:
-        st.success("No cap breaches or imminent earnings. Book looks balanced.")
+    # ---- Compact health strip (one line, not four big cards) ----
+    semis_w = report["clusters"].get("semis_ai_hw", {}).get("weight", 0.0)
+    trend_txt = (
+        f"trend {'▲ intact' if tr['above'] else '▼ broken'} ({tr['distance']:+.0%})"
+        if tr else ""
+    )
+    st.caption(
+        f"**${total:,.0f}** · semis **{semis_w:.0%}** · top **{top.get('symbol','—')} "
+        f"{top.get('weight',0):.0%}** · cash {(data['cash_weight'] or 0):.0%} · {trend_txt}  "
+        f"— {data['account']}, {data['as_of']}"
+    )
+
+    # ---- TODAY'S TRADES — the hero ----
+    st.subheader("Today's trades")
+    orders = plan["orders"]
+    if not orders:
+        st.success("Nothing to do today — no cap breaches or imminent earnings.")
     else:
-        for a in actions:
-            _action_row(a)
-            st.markdown("")
+        n = plan["summary"]["n_orders"]
+        raised = plan["summary"]["sell_dollars_now"]
+        st.caption(f"{n} order{'s' if n != 1 else ''} · ~${raised:,.0f} to raise, "
+                   "then redeploy into cash or diversified holdings (your call).")
+        for o in orders:
+            _order_card(o)
+
+    # Cluster status (trend-gated de-risk)
+    if plan.get("cluster_note"):
+        (st.warning if (tr and tr["above"]) else st.error)(plan["cluster_note"])
+        if plan["armed"]:
+            with st.expander(f"Armed cluster-cut orders ({len(plan['armed'])}) — fire on a trend break"):
+                for o in plan["armed"]:
+                    _order_card(o)
 
     st.divider()
 
-    # Concentration bar
-    st.subheader("Where your money is")
-    clusters = report["clusters"]
-    bands = [(label, clusters.get(key, {}).get("weight", 0.0), color)
-             for key, label, color in _BAND_ORDER
-             if clusters.get(key, {}).get("weight", 0.0) > 0]
-    bar = "".join(
-        f"<div style='width:{w*100:.1f}%;background:{color};color:#fff;"
-        f"font-size:11px;display:flex;align-items:center;justify-content:center;"
-        f"overflow:hidden;white-space:nowrap' title='{label} {w:.1%}'>"
-        f"{label if w > 0.06 else ''}</div>"
-        for label, w, color in bands
-    )
-    st.markdown(
-        f"<div style='display:flex;height:28px;border-radius:6px;overflow:hidden'>{bar}</div>",
-        unsafe_allow_html=True,
-    )
-    st.caption("Target: no single name > 5%, semis cluster < 20%, total tech < 35%.")
+    # ---- Everything else: collapsed ----
+    with st.expander("Why — the analysis behind these trades"):
+        for a in data["actions"]:
+            icon = {"critical": "🔴", "high": "🟠", "watch": "⚪"}.get(a["severity"], "•")
+            st.markdown(f"{icon} **{a['title']}** — {a['rationale']}")
+        if tr:
+            st.markdown(
+                f"📈 **Semis trend:** {tr['proxy']} {tr['distance']:+.0%} vs its "
+                f"200-day average; cluster vol ~{tr['vol']:.0%} → ~{tr['drag']:.0%}/yr "
+                "compounding drag."
+            )
 
-    # Top positions table (the detail, available but not in the way)
+    with st.expander("Where your money is"):
+        clusters = report["clusters"]
+        rows = sorted(
+            ({"Cluster": k, "Weight": v["weight"], "Value": v["value"]}
+             for k, v in clusters.items()),
+            key=lambda r: r["Weight"], reverse=True,
+        )
+        st.dataframe(
+            pd.DataFrame({
+                "Cluster": [r["Cluster"] for r in rows],
+                "Weight": [f"{r['Weight']:.1%}" for r in rows],
+                "Value": [f"${r['Value']:,.0f}" for r in rows],
+            }),
+            hide_index=True, use_container_width=True,
+        )
+        st.caption("Target: no single name > 5%, semis cluster < 20%, total tech < 35%.")
+
     with st.expander("All positions by weight"):
         names = report["names"]
-        view = pd.DataFrame({
-            "Symbol": [n["symbol"] for n in names],
-            "Value": [f"${n['value']:,.0f}" for n in names],
-            "Weight": [f"{n['weight']:.1%}" for n in names],
-        })
-        st.dataframe(view, hide_index=True, use_container_width=True)
+        st.dataframe(
+            pd.DataFrame({
+                "Symbol": [n["symbol"] for n in names],
+                "Value": [f"${n['value']:,.0f}" for n in names],
+                "Weight": [f"{n['weight']:.1%}" for n in names],
+                "ML": [data["ml_actions"].get(n["symbol"], "") for n in names],
+            }),
+            hide_index=True, use_container_width=True,
+        )

@@ -1212,13 +1212,31 @@ Each item is:
      `has_imminent_earnings()` is ready; have `open_paper_trades_for_date`
      refuse fresh full size into a print (deterministic enforcement, not
      just a dashboard nudge).
-  3. **Auto-refresh `real_holdings.json`** — currently a manual brokerage
-     pull. A small script to refresh positions + quotes would keep the
-     Action Center live.
   4. **Feed the concentration caps into the LLM snapshot** so the digest
      sizes around the real book (e.g. "you're already 38% semis — stop
      adding") instead of only the paper portfolio.
 - **Added:** 2026-06-27 (post-mortem on the June drawdowns)
+
+### Trade-plan engine + trades-first Action Center — SHIPPED 2026-06-27
+- **Why:** the user wanted the app to say *which trades to make and when*,
+  not just show analysis. `alpha_engine/risk/trade_plan.py:build_trade_plan`
+  synthesizes concentration breaches + the earnings guard + the semis-trend
+  state + ML ranks into exact SELL order tickets (share count, $, reason,
+  timing). Single-name breaches and imminent earnings are active "Now" /
+  "Before <date>" orders; the semis-cluster cut is **trend-gated** — ARMED
+  (optional) while the proxy holds its 200-DMA, and only becomes an active
+  order when the trend breaks (don't dump a working trend). ML-AVOID names
+  are trimmed first; a forced trim of an ML-BUY name is annotated as risk
+  control, not a call. The Action Center was rewritten to lead with
+  "Today's trades" and collapse everything else into expanders. 8 tests in
+  `tests/test_trade_plan.py`.
+- **Daily refresh — decision:** the user chose "refresh via the connector"
+  (no brokerage credentials stored in the app). The dashboard reads
+  `data/real_holdings.json`; the agent regenerates it via the Robinhood
+  connector on request (or a scheduled Claude routine could). Open:
+  optionally stand up a morning `schedule` routine that pulls positions +
+  quotes, rewrites the snapshot, and surfaces the day's trades.
+- **Added:** 2026-06-27
 
 ## Done
 
