@@ -45,6 +45,13 @@ echo --- ml signals --- >> data\daily_paper_trade.log
 python scripts\run_ml_signals.py --log-level WARNING >> data\daily_paper_trade.log 2>&1
 if errorlevel 1 echo [warn] ml signal generation exited non-zero, proceeding anyway >> data\daily_paper_trade.log
 
+REM Refresh earnings dates for the real book's names (holdings snapshot).
+REM Free (yfinance), non-blocking; keeps the Action Center's earnings-trim
+REM guard current. --only-holdings keeps it to ~60 symbols (~1-2 min).
+echo --- earnings refresh (holdings) --- >> data\daily_paper_trade.log
+python scripts\refresh_earnings.py --only-holdings >> data\daily_paper_trade.log 2>&1
+if errorlevel 1 echo [warn] earnings refresh exited non-zero, proceeding anyway >> data\daily_paper_trade.log
+
 REM Refresh GDELT geopolitical signals (last 7 days only - older data already in DB).
 REM Non-blocking: failure here shouldn't stop the paid digest call below.
 echo --- gdelt ingest --- >> data\daily_paper_trade.log

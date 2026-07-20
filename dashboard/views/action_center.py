@@ -55,6 +55,14 @@ def render() -> None:
         )
         return
 
+    age = data.get("holdings_age_days") or 0
+    if age > 3:
+        st.warning(
+            f"⚠️ Holdings snapshot is {age} days old ({data['as_of']}). Position "
+            "sizes may have drifted — ask the assistant to refresh your positions. "
+            "Earnings dates below are current as of today."
+        )
+
     report = data["report"]
     total = data["total_equity"]
     top = report.get("top_name") or {}

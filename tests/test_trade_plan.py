@@ -95,6 +95,17 @@ def test_ml_buy_annotation_on_forced_trim():
     assert "risk control" in mu["ml_note"]
 
 
+def test_earnings_dust_positions_filtered():
+    # A 0.5% position reporting earnings is too small to bother trimming.
+    h = _holdings(("AMD", 500, 100), ("IVV", 99500, 500))
+    plan = build_trade_plan(
+        h, concentration_report(h), DEFAULT_CAPS,
+        earnings=[{"symbol": "AMD", "date": "2026-08-04", "value": 500.0}],
+        earnings_min_weight=0.02,
+    )
+    assert not any(o["symbol"] == "AMD" for o in plan["orders"])
+
+
 def test_clean_book_no_orders():
     h = _holdings(("IVV", 50000, 500), ("VXUS", 50000, 50))
     plan = build_trade_plan(h, concentration_report(h), DEFAULT_CAPS)

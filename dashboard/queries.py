@@ -1630,7 +1630,7 @@ def ml_forward_performance(horizon: int = 21) -> dict[str, Any]:
 
 
 def portfolio_action_center(
-    horizon_days: int = 7,
+    horizon_days: int = 10,
 ) -> Optional[dict[str, Any]]:
     """Load the real-holdings snapshot (data/real_holdings.json) and run the
     concentration + earnings risk engine, returning the ranked Action Center
@@ -1657,13 +1657,18 @@ def portfolio_action_center(
     cash_weight = cash / (report["total_value"] + cash) if (report["total_value"] + cash) else None
 
     values = {h["symbol"].upper(): float(h["value"]) for h in holdings}
+    # The earnings window is relative to TODAY (the decision date), not the
+    # snapshot's pull date — this is a live "what do I do today" surface, so
+    # upcoming earnings must update daily even if holdings were pulled earlier.
+    today = _date.today()
     try:
-        as_of = _date.fromisoformat(snap.get("as_of")) if snap.get("as_of") else _date.today()
+        pulled = _date.fromisoformat(snap.get("as_of")) if snap.get("as_of") else today
     except (TypeError, ValueError):
-        as_of = _date.today()
+        pulled = today
+    holdings_age_days = (today - pulled).days
     with _conn() as con:
         earnings = upcoming_earnings(
-            con, list(values), as_of, horizon_days=horizon_days, values=values
+            con, list(values), today, horizon_days=horizon_days, values=values
         )
     actions = rank_actions(report, upcoming_earnings=earnings, cash_weight=cash_weight)
 
@@ -1718,6 +1723,7 @@ def portfolio_action_center(
         "semis_trend": semis_trend,
         "ml_actions": ml_actions,
         "plan": plan,
+        "holdings_age_days": holdings_age_days,
     }
 
 

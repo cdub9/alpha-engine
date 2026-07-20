@@ -1203,11 +1203,16 @@ Each item is:
     `queries.portfolio_action_center()` wires it together.
   - 10 unit tests in `tests/test_portfolio_risk.py`.
 - **Open follow-ups:**
-  1. **Earnings calendar is stale + universe-only.** It's ingested only
-     through ~06/18 and covers the ~115-name universe, so most of the real
-     book's names (and any print >7d out) don't surface in the guard today.
-     Refresh it on the nightly run and extend coverage to held symbols
-     beyond the universe, or the earnings-blackout rule stays half-blind.
+  1. ~~**Earnings calendar is stale + universe-only.**~~ **ADDRESSED
+     2026-07-19:** `scripts/refresh_earnings.py` pulls earnings dates for the
+     union of the real holdings snapshot + universe equities (ETFs skipped);
+     wired into the nightly bat as a non-blocking `--only-holdings` step
+     (~60 names) so the book's earnings stay current. The Action Center's
+     earnings window is now keyed to `date.today()` (not the snapshot pull
+     date), and dust positions (< 2% of book) are excluded. Verified it
+     surfaces INTC/STX/META trims ahead of their late-July prints. (yfinance
+     coverage still has occasional gaps; a paid provider is the eventual
+     fix if it matters.)
   2. **Wire the guard into the paper trader's open path** —
      `has_imminent_earnings()` is ready; have `open_paper_trades_for_date`
      refuse fresh full size into a print (deterministic enforcement, not

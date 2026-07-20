@@ -70,6 +70,7 @@ def build_trade_plan(
     earnings: Optional[list[dict[str, Any]]] = None,
     ml_actions: Optional[dict[str, str]] = None,
     earnings_trim_frac: float = 0.5,
+    earnings_min_weight: float = 0.02,
 ) -> dict[str, Any]:
     """Build the day's orders.
 
@@ -105,9 +106,12 @@ def build_trade_plan(
         trimmed.add(sym)
 
     # 2. Held names reporting earnings soon -> cut size into the print.
+    # Skip dust-sized positions — you don't need to trim a 0.5% line.
     for e in earnings or []:
         sym = e["symbol"].upper()
         if sym in trimmed or sym not in value:
+            continue
+        if value[sym] / total < earnings_min_weight:
             continue
         over = value[sym] * earnings_trim_frac
         sh = _shares(over, price.get(sym))
