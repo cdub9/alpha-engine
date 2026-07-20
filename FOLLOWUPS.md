@@ -1257,10 +1257,19 @@ Each item is:
   ideas" section (separate from the deterministic risk trades), and signal
   columns (ML / vs-200MA / RSI / LLM) on the positions table. 6 tests in
   `tests/test_holistic.py`.
-- **Phase 2 (open, costs money):** run the LLM digest on a universe that
-  INCLUDES the real holdings + candidate names, so it generates genuine buy
-  ideas that evaluate YOUR book holistically (today the digest only covers
-  the paper universe, so most held names have no LLM view). ~$0.16/run.
+- **Phase 2 (SHIPPED 2026-07-20, costs money):** `scripts/run_book_digest.py`
+  runs the digest on universe = active ∪ held-names-with-bars, tagged a
+  distinct `-book` cohort and cached (persist=False, so the paper track
+  record stays clean). The Action Center overlay reads the latest cached
+  digest, so held names now get real LLM views. First run ($0.20) gave
+  per-holding calls (add NVDA/META/MSFT, hold the rest) and was itself
+  concentration-aware ("own SMH+AMAT+LRCX+MU+AVGO+TSM already — plenty of
+  concentration"). `opportunity_ideas` now weights the LLM view by
+  conviction so a high-conviction add stands alone — but stays cap-gated
+  (NVDA's 8.0 add was blocked as over-cap semis; META/MSFT surfaced).
+  STILL OPEN: (a) ~22 held names (mostly ETFs + ALAB/ARCC/ROIV/SIMO) have no
+  bars so aren't evaluated — backfill them for full coverage; (b) run it on
+  a schedule (daily cost ~$5/mo) if wanted.
 - **Phase 3 (open, the learning):** extend the forward-validation /
   calibration to score the Action Center's OWN recommendations on the real
   book over time, so it learns which signal combinations actually worked and

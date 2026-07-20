@@ -42,6 +42,32 @@ def test_add_blocked_when_name_at_cap():
     assert out["adds"] == []
 
 
+def test_high_conviction_llm_add_stands_alone():
+    # A conviction-7.5 LLM add is the holistic call — it surfaces on its own
+    # (non-semis, room to add), no ML/trend confirmation required.
+    rep = _report(META=2000, IVV=98000)
+    sig = {"META": {"llm_direction": "add", "llm_conviction": 7.5}}
+    out = opportunity_ideas(rep, sig)
+    assert [a["symbol"] for a in out["adds"]] == ["META"]
+
+
+def test_high_conviction_llm_add_blocked_for_over_cap_semis():
+    # NVDA 4% (under name cap) but semis cluster 21% > 20% -> add blocked
+    # despite a conviction-8.0 LLM add.
+    rep = _report(NVDA=4000, AMD=17000, IVV=79000)
+    sig = {"NVDA": {"llm_direction": "add", "llm_conviction": 8.0}}
+    out = opportunity_ideas(rep, sig)
+    assert out["adds"] == []
+
+
+def test_low_conviction_llm_add_alone_below_threshold():
+    # conviction 6.0 add scores +1.0 < 1.5 -> not an idea without confirmation.
+    rep = _report(META=2000, IVV=98000)
+    sig = {"META": {"llm_direction": "add", "llm_conviction": 6.0}}
+    out = opportunity_ideas(rep, sig)
+    assert out["adds"] == []
+
+
 def test_mixed_signals_below_threshold_no_idea():
     rep = _report(AAA=3000, IVV=97000)
     # ML BUY (+1) but LLM sell (-1) and flat -> net ~0, no idea either way.

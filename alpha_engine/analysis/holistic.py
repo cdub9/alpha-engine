@@ -47,13 +47,19 @@ def _score_signals(s: dict[str, Any]) -> tuple[float, list[str]]:
         score -= 1.0
         why.append("ML ranks it a bottom-quintile AVOID")
 
+    # The LLM digest's call already fuses regime/macro/GDELT/TA/track record,
+    # so weight it by conviction: a high-conviction add/trim is the holistic
+    # recommendation and can stand on its own (still cap-gated below).
     llm = (s.get("llm_direction") or "").lower()
+    conv = s.get("llm_conviction")
+    strong = conv is not None and conv >= 7.5
+    conv_txt = f" (conv {conv:.1f})" if conv is not None else ""
     if llm in _LLM_LONG:
-        score += 1.0
-        why.append(f"LLM digest says {llm}")
+        score += 1.5 if strong else 1.0
+        why.append(f"LLM digest says {llm}{conv_txt}")
     elif llm in _LLM_SHORT:
-        score -= 1.0
-        why.append(f"LLM digest says {llm}")
+        score -= 1.5 if strong else 1.0
+        why.append(f"LLM digest says {llm}{conv_txt}")
 
     dist = s.get("dist_200ma")
     if dist is not None:
