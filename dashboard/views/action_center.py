@@ -102,7 +102,52 @@ def render() -> None:
                 for o in plan["armed"]:
                     _order_card(o)
 
+    # ---- Opportunity ideas — softer, signal-driven, honestly labeled ----
+    opp = data.get("opportunity") or {"trims": [], "adds": []}
+    if opp["trims"] or opp["adds"]:
+        st.subheader("Opportunity ideas")
+        st.caption(
+            "From the app's return-side signals (ML rank, LLM digest, technicals). "
+            "These are IDEAS, not orders — the app's return skill is still "
+            "unproven (see the forward-validation panel on Track Record). Weigh "
+            "them; don't obey them. Add ideas already respect your risk caps "
+            "(nothing suggested that worsens an over-cap cluster)."
+        )
+        for idea in opp["trims"]:
+            w = f" ({idea['weight']:.1%})" if idea.get("weight") is not None else ""
+            st.markdown(f"🔻 **Trim {idea['symbol']}**{w} — {idea['reason']}")
+        for idea in opp["adds"]:
+            w = f" ({idea['weight']:.1%})" if idea.get("weight") is not None else ""
+            st.markdown(f"🔼 **Consider adding {idea['symbol']}**{w} — {idea['reason']}")
+
     st.divider()
+
+    # ---- Market context (the holistic read) ----
+    mc = data.get("market_context") or {}
+    with st.expander("Market context — regime, themes, geopolitical"):
+        if mc.get("regime"):
+            st.markdown(
+                f"**Regime:** {mc['regime']} "
+                f"(confidence {mc.get('regime_confidence', 0):.0%}, "
+                f"as of {mc.get('regime_date')})"
+            )
+        if mc.get("market_summary"):
+            st.markdown(f"**Digest read ({mc.get('digest_date')}):** {mc['market_summary']}")
+        themes = mc.get("key_themes") or []
+        if themes:
+            st.markdown("**Key themes:** " + " · ".join(str(t) for t in themes[:5]))
+        risks = mc.get("risk_notes") or []
+        if risks:
+            st.markdown("**Risk notes:**")
+            for r in risks[:5]:
+                st.markdown(f"  - {r}")
+        geo = mc.get("geopolitical") or []
+        if geo:
+            st.markdown("**Elevated geopolitical signals:** " + ", ".join(
+                f"{g['name']}"
+                + (f" (tone {g['avg_tone']:+.1f})" if g.get("avg_tone") is not None else "")
+                for g in geo
+            ))
 
     # ---- Everything else: collapsed ----
     with st.expander("Why — the analysis behind these trades"):
@@ -133,14 +178,33 @@ def render() -> None:
         )
         st.caption("Target: no single name > 5%, semis cluster < 20%, total tech < 35%.")
 
-    with st.expander("All positions by weight"):
+    with st.expander("All positions — with signals"):
         names = report["names"]
+        sig = data.get("signals") or {}
+
+        def _rsi(s):
+            v = sig.get(s, {}).get("rsi_14")
+            return f"{v:.0f}" if v is not None else ""
+
+        def _trend(s):
+            v = sig.get(s, {}).get("dist_200ma")
+            return f"{v:+.0%}" if v is not None else ""
+
+        def _llm(s):
+            d = sig.get(s, {}).get("llm_direction")
+            return d or ""
+
         st.dataframe(
             pd.DataFrame({
                 "Symbol": [n["symbol"] for n in names],
                 "Value": [f"${n['value']:,.0f}" for n in names],
                 "Weight": [f"{n['weight']:.1%}" for n in names],
                 "ML": [data["ml_actions"].get(n["symbol"], "") for n in names],
+                "vs 200MA": [_trend(n["symbol"]) for n in names],
+                "RSI": [_rsi(n["symbol"]) for n in names],
+                "LLM": [_llm(n["symbol"]) for n in names],
             }),
             hide_index=True, use_container_width=True,
         )
+        st.caption("ML = cross-sectional rank bucket · vs 200MA = trend location · "
+                   "RSI = 14-day · LLM = latest digest view (blank if not covered).")

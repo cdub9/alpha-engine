@@ -1235,6 +1235,43 @@ Each item is:
   control, not a call. The Action Center was rewritten to lead with
   "Today's trades" and collapse everything else into expanders. 8 tests in
   `tests/test_trade_plan.py`.
+### Holistic Action Center — Phase 1 SHIPPED 2026-06-27; Phases 2-3 open
+- **Goal (user):** the Action Center should evaluate ALL data — economic,
+  events, political, technical — to suggest return-maximizing trades, and
+  learn from its own calls over time.
+- **Honest framing:** the holistic engine already exists — `build_snapshot`
+  ingests regime + macro (FRED) + calendar/earnings + GDELT geopolitical +
+  per-symbol technicals + the feedback-loop track record, and the LLM digest
+  synthesizes it into market context + buy/add/hold calls. The gaps were (a)
+  it runs on the paper universe, not the real book, (b) its output never
+  reached the Action Center, and (c) the return-side signals have UNPROVEN
+  forward skill (the forward-validation scorers are still accumulating), so
+  return recommendations must be labeled ideas, not orders.
+- **Phase 1 (shipped, free):** `alpha_engine/analysis/holistic.py:opportunity_ideas`
+  combines each holding's ML rank + LLM digest view + technicals into
+  cap-aware trim/add IDEAS (never suggests adding to an over-cap cluster —
+  e.g. it found MU bullish on signals but blocked the add because semis are
+  38%). `queries._holistic_signals` gathers per-holding signals + market
+  context (regime, digest narrative, elevated geopolitical). The Action
+  Center gained a "Market context" panel, an honestly-labeled "Opportunity
+  ideas" section (separate from the deterministic risk trades), and signal
+  columns (ML / vs-200MA / RSI / LLM) on the positions table. 6 tests in
+  `tests/test_holistic.py`.
+- **Phase 2 (open, costs money):** run the LLM digest on a universe that
+  INCLUDES the real holdings + candidate names, so it generates genuine buy
+  ideas that evaluate YOUR book holistically (today the digest only covers
+  the paper universe, so most held names have no LLM view). ~$0.16/run.
+- **Phase 3 (open, the learning):** extend the forward-validation /
+  calibration to score the Action Center's OWN recommendations on the real
+  book over time, so it learns which signal combinations actually worked and
+  reweights `opportunity_ideas` scoring accordingly (right now the weights
+  are fixed, not learned).
+- **Data-freshness gap found:** `regime_classifications` is stale (latest
+  2026-05-29 — the classifier hasn't been re-run since May), so the market
+  context shows a 2-month-old regime. Add `classify_regimes.py` to the
+  nightly run (it's free, macro-only) so the regime is current.
+- **Added:** 2026-06-27
+
 - **Daily refresh — decision:** the user chose "refresh via the connector"
   (no brokerage credentials stored in the app). The dashboard reads
   `data/real_holdings.json`; the agent regenerates it via the Robinhood

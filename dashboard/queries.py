@@ -1711,6 +1711,13 @@ def portfolio_action_center(
         trend=semis_trend, earnings=earnings, ml_actions=ml_actions,
     )
 
+    # Holistic overlay: gather every return-side signal the app has for the
+    # names actually held, plus top-of-book market context, then derive
+    # opportunity ideas (cap-aware). See alpha_engine.analysis.holistic.
+    market_context, signals = _holistic_signals(list(values), ml_d)
+    from alpha_engine.analysis.holistic import opportunity_ideas
+    opportunity = opportunity_ideas(report, signals, report["caps"])
+
     return {
         "account": snap.get("account", ""),
         "as_of": snap.get("as_of", ""),
@@ -1724,7 +1731,82 @@ def portfolio_action_center(
         "ml_actions": ml_actions,
         "plan": plan,
         "holdings_age_days": holdings_age_days,
+        "market_context": market_context,
+        "signals": signals,
+        "opportunity": opportunity,
     }
+
+
+def _holistic_signals(
+    held: list[str], ml_date: Optional[date]
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    """Gather per-holding signals (ML rank, TA, LLM view) and top-of-book
+    market context (regime, digest narrative, elevated geopolitical signals)
+    for the real book. Reuses the app's existing engines."""
+    signals: dict[str, dict[str, Any]] = {}
+    held_up = [s.upper() for s in held]
+
+    with _conn() as con:
+        # ML rank + technicals per held name (momentum model — the robust one)
+        if ml_date is not None and held_up:
+            ph = ",".join(["?"] * len(held_up))
+            for sym, action, rank, n, dist200, rsi in con.execute(
+                f"""
+                SELECT symbol, action, rank, n_universe, dist_200ma, rsi_14
+                FROM ml_signals
+                WHERE model_version = 'ml-momentum-v1' AND signal_date = ?
+                  AND symbol IN ({ph})
+                """,
+                [ml_date, *held_up],
+            ).fetchall():
+                signals.setdefault(sym, {}).update({
+                    "ml_action": action, "ml_rank": rank, "ml_n": n,
+                    "dist_200ma": dist200, "rsi_14": rsi,
+                })
+
+        # Latest regime + top elevated geopolitical signal
+        regime_row = con.execute(
+            "SELECT classification_date, regime, confidence FROM regime_classifications "
+            "ORDER BY classification_date DESC LIMIT 1"
+        ).fetchone()
+        geo = con.execute(
+            """
+            SELECT signal_name, volume_intensity, avg_tone
+            FROM geopolitical_signals
+            WHERE signal_date = (SELECT MAX(signal_date) FROM geopolitical_signals)
+              AND (volume_intensity IS NOT NULL OR avg_tone IS NOT NULL)
+            ORDER BY COALESCE(volume_intensity, 0) DESC, avg_tone ASC
+            LIMIT 4
+            """
+        ).fetchall()
+
+    # LLM digest view per held name (only names the digest covered) + narrative
+    digest_d = latest_digest_date()
+    llm_narrative = digest_narrative(digest_d) if digest_d else {}
+    if digest_d is not None:
+        sugg = suggestions_for_date(digest_d)
+        if not sugg.empty:
+            for _, r in sugg.iterrows():
+                sym = str(r["symbol"]).upper()
+                if sym in held_up:
+                    signals.setdefault(sym, {}).update({
+                        "llm_direction": (r["direction"] or "").lower(),
+                        "llm_conviction": r["conviction"],
+                    })
+
+    market_context = {
+        "regime": regime_row[1] if regime_row else None,
+        "regime_date": regime_row[0] if regime_row else None,
+        "regime_confidence": regime_row[2] if regime_row else None,
+        "digest_date": digest_d,
+        "market_summary": llm_narrative.get("market_summary", ""),
+        "key_themes": llm_narrative.get("key_themes", []),
+        "risk_notes": llm_narrative.get("risk_notes", []),
+        "geopolitical": [
+            {"name": g[0], "volume_intensity": g[1], "avg_tone": g[2]} for g in geo
+        ],
+    }
+    return market_context, signals
 
 
 def feedback_loop_behavior() -> dict[str, Any]:
