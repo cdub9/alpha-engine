@@ -79,6 +79,17 @@ def main() -> None:
             console.print(f"  - Consider ADD {a['symbol']} — {a['reason']}")
         for t in opp["trims"]:
             console.print(f"  - Consider TRIM {t['symbol']} — {t['reason']}")
+        # Phase 3 — how these ideas have done so far (forward vs SPY).
+        tr = q.reco_track_record()
+        if tr["n_matured"] == 0:
+            console.print(f"  [dim]track record: {tr['n_total']} logged, none matured "
+                          f"yet (~{tr['horizon']}d to first score).[/]")
+        else:
+            add = tr["by_kind"]["add"]
+            console.print(f"  [dim]track record vs SPY: adds "
+                          f"{add['hit_rate'] and format(add['hit_rate'],'.0%')} hit / "
+                          f"{add['avg_alpha'] and format(add['avg_alpha'],'+.1%')} alpha "
+                          f"(n={add['n']}), {tr['n_pending']} pending.[/]")
 
     # 3) One-line market context.
     mc = d.get("market_context") or {}

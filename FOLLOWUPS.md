@@ -1273,11 +1273,20 @@ Each item is:
   wired into the morning routine (backfill_holdings --since 7 → run_book_digest
   → morning_brief), so the daily brief now includes opportunity ideas +
   market context. Daily cost ~$0.20 (the one book-digest call).
-- **Phase 3 (open, the learning):** extend the forward-validation /
-  calibration to score the Action Center's OWN recommendations on the real
-  book over time, so it learns which signal combinations actually worked and
-  reweights `opportunity_ideas` scoring accordingly (right now the weights
-  are fixed, not learned).
+- **Phase 3 (SHIPPED 2026-07-20, the learning substrate):**
+  `alpha_engine/analysis/reco_tracker.py` records each day's opportunity
+  ideas to `book_recommendations` and scores them forward vs SPY once ~21
+  trading days elapse (an ADD "worked" if it beat SPY; a TRIM if it lagged).
+  `scripts/record_recommendations.py` (wired into the morning routine, free)
+  logs the ideas against SPY's latest close and prints the running hit-rate /
+  avg-alpha by kind; the Action Center + morning brief show the track record
+  (currently "2 logged, accumulating — first scores in ~21 trading days").
+  8 tests in `tests/test_reco_tracker.py`.
+  STILL OPEN (the actual reweighting): once ~30+ ideas have matured, feed the
+  per-signal hit rates back into `holistic._score_signals` so the weights are
+  learned, not fixed. Deliberately NOT done on zero data — reweighting on a
+  tiny sample is exactly the curve-fitting the walk-forward work warned
+  against. The measurement loop has to run first.
 - **Data-freshness gap found:** `regime_classifications` is stale (latest
   2026-05-29 — the classifier hasn't been re-run since May), so the market
   context shows a 2-month-old regime. Add `classify_regimes.py` to the

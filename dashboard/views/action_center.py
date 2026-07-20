@@ -120,6 +120,29 @@ def render() -> None:
             w = f" ({idea['weight']:.1%})" if idea.get("weight") is not None else ""
             st.markdown(f"🔼 **Consider adding {idea['symbol']}**{w} — {idea['reason']}")
 
+        # Phase 3 — do these ideas actually work? (forward track record)
+        rtr = q.reco_track_record()
+        if rtr["n_matured"] == 0:
+            st.caption(
+                f"📈 Learning loop: {rtr['n_total']} idea(s) logged so far, none "
+                f"matured yet — first forward scores (vs {rtr['benchmark']}, "
+                f"{rtr['horizon']}-day) in ~{rtr['horizon']} trading days. Until "
+                "then these are unproven."
+            )
+        else:
+            add, trim = rtr["by_kind"]["add"], rtr["by_kind"]["trim"]
+            bits = []
+            if add["n"]:
+                bits.append(f"adds {add['hit_rate']:.0%} hit / {add['avg_alpha']:+.1%} avg alpha (n={add['n']})")
+            if trim["n"]:
+                bits.append(f"trims {trim['hit_rate']:.0%} hit / {trim['avg_alpha']:+.1%} (n={trim['n']})")
+            st.caption(
+                f"📈 Track record vs {rtr['benchmark']} ({rtr['horizon']}-day): "
+                + " · ".join(bits)
+                + f" · {rtr['n_pending']} pending. "
+                + ("Small sample — directional only." if rtr["n_matured"] < 20 else "")
+            )
+
     st.divider()
 
     # ---- Market context (the holistic read) ----

@@ -1809,6 +1809,15 @@ def _holistic_signals(
     return market_context, signals
 
 
+def reco_track_record(horizon: int = 21) -> dict[str, Any]:
+    """Forward track record of the Action Center's own opportunity ideas
+    (Phase 3 learning loop). See alpha_engine.analysis.reco_tracker."""
+    from alpha_engine.analysis.reco_tracker import score_recommendations
+
+    with _conn() as con:
+        return score_recommendations(con, horizon=horizon)
+
+
 def feedback_loop_behavior() -> dict[str, Any]:
     """Per-model_version behavior comparison (v1 vs v3-fb): conviction-
     calibration slope, duplicate-of-holding share, action mix, and repeated

@@ -360,3 +360,28 @@ CREATE TABLE IF NOT EXISTS ml_signals (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ml_signals_date ON ml_signals(signal_date);
+
+-- ============================================================================
+-- Action Center recommendation log (the Phase 3 learning loop)
+-- ============================================================================
+-- One row per (as_of, symbol, kind): what the Action Center's opportunity
+-- layer recommended on a given day, plus the signals behind it. Scored
+-- forward (score_recommendations) once `horizon` trading days elapse, so the
+-- app can measure whether its own add/trim ideas actually worked — the only
+-- honest way to learn which signal combinations to trust. Same-day re-runs
+-- replace. Deterministic RISK trades are not logged here (they're not a
+-- prediction — a cap breach is a cap breach); this table is for the
+-- unproven, return-seeking IDEAS.
+
+CREATE TABLE IF NOT EXISTS book_recommendations (
+    as_of         DATE NOT NULL,
+    symbol        VARCHAR NOT NULL,
+    kind          VARCHAR NOT NULL,       -- 'add' | 'trim'
+    score         DOUBLE,
+    weight        DOUBLE,                 -- portfolio weight at reco time
+    signals_json  VARCHAR,                -- the contributing signals
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (as_of, symbol, kind)
+);
+
+CREATE INDEX IF NOT EXISTS idx_book_reco_date ON book_recommendations(as_of);
