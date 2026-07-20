@@ -1,21 +1,18 @@
-"""Print the day's recommended trades — a standalone, Streamlit-free brief.
+"""Print the day's brief — trades, opportunity ideas, and market context.
 
-The scheduled morning routine runs this after refreshing the holdings
-snapshot and earnings, so it can deliver "here are today's trades" as text
-(message / notification) without needing the local dashboard.
+The scheduled morning routine runs this after refreshing holdings, earnings,
+held-name bars, and the book digest, so it can deliver the full picture as
+text (message / notification): the deterministic risk trades first, then the
+digest-driven opportunity ideas (clearly labeled unproven), then a one-line
+market read.
 
-Reads data/real_holdings.json and applies the same rules as the Action
-Center: single-name + cluster concentration caps, the earnings-blackout
-guard (window relative to today), and the semis-trend gate. Degrades
-gracefully — concentration always works; earnings need a populated
-calendar; the trend needs SMH/SOXX bars (skipped if absent).
+Reuses the Action Center's data layer (queries.portfolio_action_center) — no
+Streamlit — so the brief and the dashboard always agree.
 """
 
 from __future__ import annotations
 
-import json
 import sys
-from datetime import date
 from pathlib import Path
 
 import typer
@@ -27,89 +24,69 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     except (AttributeError, OSError):
         pass
 
-from alpha_engine.db import get_connection
-from alpha_engine.risk.earnings_guard import upcoming_earnings
-from alpha_engine.risk.portfolio import (
-    annualized_vol_drag,
-    concentration_report,
-    trend_state,
-)
-from alpha_engine.risk.trade_plan import build_trade_plan
+# `dashboard` is a top-level package (not pip-installed like alpha_engine),
+# so add the project root to the path when run as a script.
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+
+from dashboard import queries as q
 
 console = Console()
 app = typer.Typer(add_completion=False, help=__doc__)
 
-_HOLDINGS = Path(__file__).resolve().parent.parent / "data" / "real_holdings.json"
-
-
-def _semis_trend(con) -> dict | None:
-    for proxy in ("SMH", "SOXX"):
-        px = [r[0] for r in con.execute(
-            "SELECT adj_close FROM market_bars WHERE symbol = ? ORDER BY bar_date",
-            [proxy],
-        ).fetchall()]
-        ts = trend_state(px, window=200)
-        if ts is None:
-            continue
-        rets = [px[i] / px[i - 1] - 1.0 for i in range(1, len(px))]
-        return {"proxy": proxy, **ts, **annualized_vol_drag(rets)}
-    return None
-
 
 @app.command()
-def main(horizon_days: int = typer.Option(10, "--earnings-window")) -> None:
-    if not _HOLDINGS.exists():
+def main() -> None:
+    d = q.portfolio_action_center()
+    if d is None:
         console.print("[red]No holdings snapshot — pull positions first.[/]")
         raise typer.Exit(1)
-    snap = json.loads(_HOLDINGS.read_text(encoding="utf-8"))
-    holdings = snap.get("holdings", [])
-    if not holdings:
-        console.print("[red]Holdings snapshot is empty.[/]")
-        raise typer.Exit(1)
 
-    report = concentration_report(holdings)
-    total = report["total_value"]
-    values = {h["symbol"].upper(): float(h["value"]) for h in holdings}
-    today = date.today()
-
-    trend = None
-    earnings: list = []
-    try:
-        with get_connection(read_only=True) as con:
-            trend = _semis_trend(con)
-            earnings = upcoming_earnings(con, list(values), today,
-                                         horizon_days=horizon_days, values=values)
-    except Exception as exc:  # no DB / empty DB in a fresh env — degrade
-        console.print(f"[dim](trend/earnings unavailable: {exc})[/]")
-
-    plan = build_trade_plan(holdings, report, report["caps"],
-                            trend=trend, earnings=earnings)
-
-    semis_w = report["clusters"].get("semis_ai_hw", {}).get("weight", 0.0)
+    report = d["report"]
+    total = d["total_equity"]
     top = report.get("top_name") or {}
-    console.print(f"[bold]AlphaEngine — trades for {today}[/]")
-    console.print(
-        f"Account {snap.get('account','')} · ${total:,.0f} · semis {semis_w:.0%} · "
-        f"top {top.get('symbol','—')} {top.get('weight',0):.0%}"
-        + (f" · semis trend {'▲' if trend['above'] else '▼'} {trend['distance']:+.0%}"
-           if trend else "")
-    )
-    age = (today - date.fromisoformat(snap["as_of"])).days if snap.get("as_of") else 0
-    if age > 3:
-        console.print(f"[yellow]⚠ holdings snapshot is {age} days old — sizes may have drifted.[/]")
+    tr = d.get("semis_trend")
+    semis_w = report["clusters"].get("semis_ai_hw", {}).get("weight", 0.0)
 
-    console.print("\n[bold]Today's trades[/]")
+    from datetime import date
+    console.print(f"[bold]AlphaEngine — brief for {date.today()}[/]")
+    console.print(
+        f"{d.get('account','')} · ${total:,.0f} · semis {semis_w:.0%} · "
+        f"top {top.get('symbol','—')} {top.get('weight',0):.0%} · "
+        f"cash {(d['cash_weight'] or 0):.0%}"
+        + (f" · semis trend {'up' if tr['above'] else 'DOWN'} {tr['distance']:+.0%}" if tr else "")
+    )
+    if (d.get("holdings_age_days") or 0) > 3:
+        console.print(f"[yellow]! holdings snapshot is {d['holdings_age_days']} days old.[/]")
+
+    # 1) Risk trades — the high-confidence, deterministic layer.
+    plan = d["plan"]
+    console.print("\n[bold]Today's trades[/] [dim](risk layer — act on these)[/]")
     if not plan["orders"]:
-        console.print("  [green]Nothing to do — no cap breaches or imminent earnings.[/]")
+        console.print("  [green]Nothing required — no cap breaches or imminent earnings.[/]")
     for o in plan["orders"]:
         sh = f"{o['shares']} sh" if o["shares"] else ""
-        console.print(
-            f"  • [bold]{o['action']} {sh} {o['symbol']}[/] ~${o['est_dollars']:,.0f}  "
-            f"[{o['when']}] — {o['reason']}"
-            + (f"  ({o['ml_note']})" if o["ml_note"] else "")
-        )
+        console.print(f"  - {o['action']} {sh} {o['symbol']} ~${o['est_dollars']:,.0f} "
+                      f"[{o['when']}] — {o['reason']}")
+
+    # 2) Opportunity ideas — softer, digest-driven, honestly labeled.
+    opp = d.get("opportunity") or {"adds": [], "trims": []}
+    if opp["adds"] or opp["trims"]:
+        console.print("\n[bold]Opportunity ideas[/] [dim](from the digest's signals — "
+                      "UNPROVEN skill; weigh, don't obey; already cap-gated)[/]")
+        for a in opp["adds"]:
+            console.print(f"  - Consider ADD {a['symbol']} — {a['reason']}")
+        for t in opp["trims"]:
+            console.print(f"  - Consider TRIM {t['symbol']} — {t['reason']}")
+
+    # 3) One-line market context.
+    mc = d.get("market_context") or {}
+    if mc.get("market_summary"):
+        console.print(f"\n[dim]Market read ({mc.get('digest_date')}): "
+                      f"{mc['market_summary'][:280]}[/]")
     if plan.get("cluster_note"):
-        console.print(f"\n[dim]{plan['cluster_note']}[/]")
+        console.print(f"[dim]{plan['cluster_note']}[/]")
 
 
 if __name__ == "__main__":

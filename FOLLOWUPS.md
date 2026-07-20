@@ -1267,9 +1267,12 @@ Each item is:
   concentration"). `opportunity_ideas` now weights the LLM view by
   conviction so a high-conviction add stands alone — but stays cap-gated
   (NVDA's 8.0 add was blocked as over-cap semis; META/MSFT surfaced).
-  STILL OPEN: (a) ~22 held names (mostly ETFs + ALAB/ARCC/ROIV/SIMO) have no
-  bars so aren't evaluated — backfill them for full coverage; (b) run it on
-  a schedule (daily cost ~$5/mo) if wanted.
+  RESOLVED 2026-07-20: (a) `scripts/backfill_holdings.py` backfilled all 22
+  missing held names (25,938 bars) so the whole book is now evaluable, and
+  it has a `--since N` mode to keep held bars fresh; (b) the book digest is
+  wired into the morning routine (backfill_holdings --since 7 → run_book_digest
+  → morning_brief), so the daily brief now includes opportunity ideas +
+  market context. Daily cost ~$0.20 (the one book-digest call).
 - **Phase 3 (open, the learning):** extend the forward-validation /
   calibration to score the Action Center's OWN recommendations on the real
   book over time, so it learns which signal combinations actually worked and
