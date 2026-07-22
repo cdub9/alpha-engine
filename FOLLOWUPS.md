@@ -1301,6 +1301,30 @@ Each item is:
   quotes, rewrites the snapshot, and surfaces the day's trades.
 - **Added:** 2026-06-27
 
+## Infra resilience
+
+### Transient network blip crashed the whole nightly run — FIXED 2026-07-22
+- **What happened:** the 2026-07-21 evening auto-run failed with exit code 1.
+  Root cause was a transient network outage at run time: yfinance returned
+  "no price data" for every symbol (leaving bars stale at 07-20) and the paid
+  digest call exhausted the Anthropic SDK's internal retries with
+  `APIConnectionError`, which propagated uncaught → exit 1 → red error card on
+  the dashboard. Both services were reachable again by 07-22 (yfinance and
+  api.anthropic.com both tested OK), confirming it was a blip, not an outage
+  or a key problem.
+- **Fix:** digest generation in `paper_trader.py run-day` is now wrapped in
+  try/except — a failure logs a `[warn]` and falls through to open/score on
+  existing signals instead of crashing the run. This matches every other step
+  in `daily_paper_trade.bat`, which is already non-blocking. The bar refresh
+  was already non-fatal and self-heals (it pulls `--since 7`, so a missed day
+  is re-fetched next run). Refreshed the stale data by hand (bars + ML now
+  through 07-22).
+- **Open:** the run now exits 0 on a digest blip, so post_run_check reports
+  "ok" and the user isn't alerted that the digest specifically was skipped.
+  If digest-skip visibility matters, have post_run_check detect the
+  "digest generation failed" log line and surface a "degraded" status.
+- **Added:** 2026-07-22
+
 ## Done
 
 <!-- When closing an item, move it here with a date and one-line resolution. -->

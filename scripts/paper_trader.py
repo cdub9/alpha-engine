@@ -399,29 +399,41 @@ def run_day(
         )
         from alpha_engine.llm.digest import run_digest
 
-        run = run_digest(
-            as_of=target,
-            universe=universe,
-            enable_dissent=False,  # cheaper; dissent for live trading is optional
-            persist=True,           # also persist into signals
-            primary_model=primary_model,
-            model_version=model_version,
-            effort=effort,
-            dissent_model="claude-haiku-4-5",
-        )
-        with get_connection() as con:
-            store_cached_output(
-                con,
+        # Digest generation is non-fatal: a transient network/API blip (the
+        # SDK already retries connection errors internally) must not crash the
+        # whole nightly run. On failure, warn and fall through to open/score
+        # on existing signals — the next run retries. This mirrors every other
+        # step in daily_paper_trade.bat, which is non-blocking by design.
+        try:
+            run = run_digest(
                 as_of=target,
-                model_version=model_version,
-                cfg_hash=cfg_hash,
-                output=run.final_output,
                 universe=universe,
-                input_tokens=run.primary_response.input_tokens,
-                output_tokens=run.primary_response.output_tokens,
-                cost_usd=run.total_cost_usd,
+                enable_dissent=False,  # cheaper; dissent for live trading is optional
+                persist=True,           # also persist into signals
+                primary_model=primary_model,
+                model_version=model_version,
+                effort=effort,
+                dissent_model="claude-haiku-4-5",
             )
-        console.print(f"[green]Generated digest. Cost: ${run.total_cost_usd:.4f}[/]")
+            with get_connection() as con:
+                store_cached_output(
+                    con,
+                    as_of=target,
+                    model_version=model_version,
+                    cfg_hash=cfg_hash,
+                    output=run.final_output,
+                    universe=universe,
+                    input_tokens=run.primary_response.input_tokens,
+                    output_tokens=run.primary_response.output_tokens,
+                    cost_usd=run.total_cost_usd,
+                )
+            console.print(f"[green]Generated digest. Cost: ${run.total_cost_usd:.4f}[/]")
+        except Exception as exc:  # noqa: BLE001 — any digest failure is non-fatal
+            console.print(
+                f"[yellow][warn] digest generation failed "
+                f"({type(exc).__name__}: {exc}). Skipping digest and continuing "
+                f"with existing signals; the next run will retry.[/]"
+            )
     elif cached is None:
         console.print(
             f"[yellow]No cached digest for {target}. "
